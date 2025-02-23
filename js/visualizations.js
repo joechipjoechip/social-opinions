@@ -251,64 +251,191 @@ export class Visualizations {
         });
     }
 
-    createFrictionChart(data) {
+    createScoresChart(data) {
         if (!data?.frictionPoints?.length) return;
 
         const ctx = document.getElementById('scoresChart').getContext('2d');
-        
+        ctx.canvas.parentNode.style.height = '300px';
+
+        // Fonction utilitaire pour diviser le texte
+        const splitText = (text, maxWidth, ctx) => {
+            const safeText = String(text || '').trim();
+            if (!safeText) return [''];
+            
+            const words = safeText.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+            
+            for (let i = 1; i < words.length; i++) {
+                const word = words[i];
+                const width = ctx.measureText(currentLine + ' ' + word).width;
+                
+                if (width < maxWidth) {
+                    currentLine += ' ' + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            lines.push(currentLine);
+            
+            return lines;
+        };
+
+        // Préparer les données en s'assurant qu'elles sont valides
+        const validPoints = data.frictionPoints.filter(point => {
+            return point && 
+                   point.opinion1?.stance && 
+                   point.opinion2?.stance && 
+                   typeof point.opinion1?.votes === 'number' &&
+                   typeof point.opinion2?.votes === 'number';
+        });
+
+        if (!validPoints.length) return;
+
         const chartData = {
-            labels: data.frictionPoints.map(d => this.truncateText(d.topic, 40)),
+            labels: validPoints.map(point => [point.opinion1.stance, point.opinion2.stance]),
             datasets: [
                 {
-                    label: 'Opinion 1',
-                    data: data.frictionPoints.map(d => -d.opinion1.votes),
-                    backgroundColor: this.colors.background[0],
-                    borderColor: 'white',
-                    borderWidth: 1
+                    label: 'Position 1',
+                    data: validPoints.map(point => -point.opinion1.votes),
+                    backgroundColor: this.colors.primary,
+                    borderWidth: 0,
+                    barPercentage: 0.8
                 },
                 {
-                    label: 'Opinion 2',
-                    data: data.frictionPoints.map(d => d.opinion2.votes),
-                    backgroundColor: this.colors.background[1],
-                    borderColor: 'white',
-                    borderWidth: 1
+                    label: 'Position 2',
+                    data: validPoints.map(point => point.opinion2.votes),
+                    backgroundColor: this.colors.secondary,
+                    borderWidth: 0,
+                    barPercentage: 0.8
                 }
             ]
         };
 
         const options = {
-            ...this.defaultOptions,
             indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            
             plugins: {
-                ...this.defaultOptions.plugins,
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'start',
+                    labels: {
+                        boxWidth: 12,
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                            size: 13
+                        }
+                    }
+                },
                 tooltip: {
+                    backgroundColor: 'white',
+                    titleColor: '#333',
+                    bodyColor: '#666',
+                    borderColor: 'rgba(0, 0, 0, 0.1)',
+                    borderWidth: 1,
+                    padding: 12,
                     callbacks: {
+                        title: (tooltipItems) => {
+                            const dataIndex = tooltipItems[0].dataIndex;
+                            const point = validPoints[dataIndex];
+                            return tooltipItems[0].dataset.label === 'Position 1' 
+                                ? point.opinion1.stance
+                                : point.opinion2.stance;
+                        },
                         label: (context) => {
                             return `${Math.abs(context.raw)} votes`;
+                        },
+                        afterBody: (tooltipItems) => {
+                            const dataIndex = tooltipItems[0].dataIndex;
+                            const point = validPoints[dataIndex];
+                            const keyArgs = tooltipItems[0].dataset.label === 'Position 1'
+                                ? point.opinion1.keyArguments || []
+                                : point.opinion2.keyArguments || [];
+                            
+                            if (keyArgs.length > 0) {
+                                return ['Arguments clés:', ...keyArgs];
+                            }
+                            return [];
                         }
                     }
                 }
             },
+            
             scales: {
                 x: {
-                    stacked: true,
+                    stacked: false,
                     grid: {
-                        color: 'rgba(0, 0, 0, 0.1)'
+                        color: 'rgba(0, 0, 0, 0.1)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        callback: value => Math.abs(value),
+                        font: {
+                            size: 12
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Nombre de votes',
+                        font: {
+                            size: 14,
+                            weight: '500'
+                        },
+                        padding: {
+                            top: 16
+                        }
                     }
                 },
                 y: {
-                    stacked: true,
+                    grid: {
+                        display: false,
+                        drawBorder: false
+                    },
                     ticks: {
-                        callback: (value) => this.truncateText(value, 40)
+                        padding: 12,
+                        font: {
+                            size: 13
+                        },
+                        callback: function(value, index) {
+                            if (!validPoints[index]) return '';
+                            
+                            const point = validPoints[index];
+                            const maxWidth = 200;
+                            const ctx = this.chart.ctx;
+                            ctx.font = '13px ' + Chart.defaults.font.family;
+                            
+                            const opinion1Lines = splitText(point.opinion1.stance, maxWidth, ctx);
+                            const opinion2Lines = splitText(point.opinion2.stance, maxWidth, ctx);
+                            
+                            // Ajouter le sujet comme titre
+                            const topicLines = point.topic ? splitText(point.topic, maxWidth, ctx) : [];
+                            
+                            return [...topicLines, ...opinion1Lines, 'vs', ...opinion2Lines];
+                        }
                     }
+                }
+            },
+            
+            layout: {
+                padding: {
+                    left: 24,
+                    right: 24,
+                    top: 20,
+                    bottom: 16
                 }
             }
         };
 
-        if (this.frictionChart) {
-            this.frictionChart.destroy();
+        if (this.scoresChart) {
+            this.scoresChart.destroy();
         }
-        this.frictionChart = new Chart(ctx, {
+
+        this.scoresChart = new Chart(ctx, {
             type: 'bar',
             data: chartData,
             options: options

@@ -75,8 +75,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Créer les visualisations
             visualizations.createOpinionClusterChart(analysisData);
+            visualizations.createScoresChart(analysisData);
             visualizations.createConsensusChart(analysisData);
-            visualizations.createFrictionChart(analysisData);
 
             // Afficher les données textuelles
             displayOverview(analysisData);
