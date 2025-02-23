@@ -1,7 +1,7 @@
 class GeminiService {
     constructor() {
         this.API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-        this.MAX_COMMENTS = 15;
+        this.MAX_COMMENTS = 150;
     }
 
     setMaxComments(limit) {

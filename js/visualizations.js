@@ -36,7 +36,7 @@ export class Visualizations {
     createOpinionClusterChart(data) {
         if (!data?.opinionClusters?.length) return;
 
-        const ctx = document.getElementById('sentimentChart').getContext('2d');
+        const ctx = document.getElementById('opinionClusterChart').getContext('2d');
         
         // Calculer la hauteur nécessaire en fonction du nombre d'opinions
         const minHeight = 400;
@@ -107,17 +107,17 @@ export class Visualizations {
                         font: {
                             size: 13
                         },
-                        // Formater les labels pour qu'ils tiennent dans l'espace disponible
                         callback: function(value, index) {
-                            // S'assurer que nous avons une chaîne de caractères
+                            if (!sortedData[index]) return '';
+                            
                             const text = String(sortedData[index].opinion);
-                            const maxWidth = 250; // Largeur maximale en pixels
+                            const maxWidth = 250;
                             const ctx = this.chart.ctx;
                             ctx.font = '13px ' + Chart.defaults.font.family;
                             
                             const words = text.split(' ');
                             const lines = [];
-                            let currentLine = words[0];
+                            let currentLine = words[0] || '';
                             
                             for (let i = 1; i < words.length; i++) {
                                 const word = words[i];
@@ -130,7 +130,9 @@ export class Visualizations {
                                     currentLine = word;
                                 }
                             }
-                            lines.push(currentLine);
+                            if (currentLine) {
+                                lines.push(currentLine);
+                            }
                             
                             return lines;
                         }
@@ -178,64 +180,122 @@ export class Visualizations {
     createConsensusChart(data) {
         if (!data?.consensusPoints?.length) return;
 
-        const ctx = document.getElementById('topicsChart').getContext('2d');
+        const ctx = document.getElementById('consensusChart').getContext('2d');
+        ctx.canvas.parentNode.style.height = '300px';
         
         const chartData = {
-            labels: data.consensusPoints.map(d => ''), // Labels vides car on les affiche avec datalabels
+            labels: data.consensusPoints.map(d => d.topic),
             datasets: [{
                 data: data.consensusPoints.map(d => d.totalVotes),
                 backgroundColor: data.consensusPoints.map(d => 
                     this.getAgreementColor(d.agreementLevel)
                 ),
-                borderColor: 'white',
-                borderWidth: 2
+                borderWidth: 0,
+                borderRadius: 4
             }]
         };
 
         const options = {
-            ...this.defaultOptions,
-            cutout: '60%',
-            layout: {
-                padding: {
-                    top: 50 // Espace pour les labels
-                }
-            },
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
-                ...this.defaultOptions.plugins,
+                legend: {
+                    display: false
+                },
                 tooltip: {
+                    backgroundColor: 'white',
+                    titleColor: '#333',
+                    bodyColor: '#666',
+                    borderColor: 'rgba(0, 0, 0, 0.1)',
+                    borderWidth: 1,
+                    padding: 12,
                     callbacks: {
+                        title: (tooltipItems) => {
+                            const point = data.consensusPoints[tooltipItems[0].dataIndex];
+                            return point.topic;
+                        },
                         label: (context) => {
                             const point = data.consensusPoints[context.dataIndex];
                             return [
-                                `Sujet: ${point.topic}`,
                                 `${context.raw} votes`,
-                                `Niveau d'accord: ${Math.round(point.agreementLevel * 100)}%`,
-                                `Position consensuelle: ${point.consensusStance}`
+                                `Niveau d'accord: ${Math.round(point.agreementLevel * 100)}%`
                             ];
+                        },
+                        afterBody: (tooltipItems) => {
+                            const point = data.consensusPoints[tooltipItems[0].dataIndex];
+                            if (Array.isArray(point.keyEvidence) && point.keyEvidence.length > 0) {
+                                return ['Citations clés:', ...point.keyEvidence.map(e => `• ${e}`)];
+                            }
+                            return [];
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        padding: 12,
+                        font: {
+                            size: 13
+                        },
+                        callback: function(value, index) {
+                            if (!data.consensusPoints[index]) return '';
+                            
+                            const text = data.consensusPoints[index].topic;
+                            const maxWidth = 250;
+                            const ctx = this.chart.ctx;
+                            ctx.font = '13px ' + Chart.defaults.font.family;
+                            
+                            const words = text.split(' ');
+                            const lines = [];
+                            let currentLine = words[0] || '';
+                            
+                            for (let i = 1; i < words.length; i++) {
+                                const word = words[i];
+                                const width = ctx.measureText(currentLine + ' ' + word).width;
+                                
+                                if (width < maxWidth) {
+                                    currentLine += ' ' + word;
+                                } else {
+                                    lines.push(currentLine);
+                                    currentLine = word;
+                                }
+                            }
+                            if (currentLine) {
+                                lines.push(currentLine);
+                            }
+                            
+                            return lines;
                         }
                     }
                 },
-                datalabels: {
-                    display: true,
-                    color: this.colors.text,
-                    font: {
-                        weight: 'bold',
-                        size: 12
+                x: {
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
                     },
-                    formatter: (value, context) => {
-                        const point = data.consensusPoints[context.dataIndex];
-                        return [
-                            point.topic,
-                            `${Math.round(point.agreementLevel * 100)}% d'accord`
-                        ];
-                    },
-                    textAlign: 'center',
-                    anchor: 'end',
-                    offset: 10,
-                    align: 'top'
-                },
-                legend: {
-                    display: false // Cacher la légende car nous avons les labels
+                    title: {
+                        display: true,
+                        text: 'Nombre de votes',
+                        font: {
+                            size: 14,
+                            weight: '500'
+                        },
+                        padding: {
+                            top: 16
+                        }
+                    }
+                }
+            },
+            layout: {
+                padding: {
+                    left: 24,
+                    right: 24,
+                    top: 20,
+                    bottom: 16
                 }
             }
         };
@@ -243,11 +303,11 @@ export class Visualizations {
         if (this.consensusChart) {
             this.consensusChart.destroy();
         }
+
         this.consensusChart = new Chart(ctx, {
-            type: 'doughnut',
+            type: 'bar',
             data: chartData,
-            options: options,
-            plugins: [ChartDataLabels]
+            options: options
         });
     }
 
