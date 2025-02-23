@@ -1,71 +1,36 @@
-import authService from './js/services/auth.service.js';
-import summaryService from './js/services/summary.service.js';
-import popupUI from './js/ui/popup.ui.js';
+import geminiService from './js/services/gemini.service.js';
 
-class PopupController {
-    constructor() {
-        this.init();
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    const summarizeBtn = document.getElementById('summarizeBtn');
+    const summaryDiv = document.getElementById('summary');
+    const loadingDiv = document.getElementById('loading');
+    const errorDiv = document.getElementById('error');
 
-    async init() {
+    summarizeBtn.addEventListener('click', async () => {
         try {
-            // Montrer le spinner de chargement pendant la vérification
-            popupUI.showLoading(true);
+            // Afficher le loading
+            loadingDiv.style.display = 'block';
+            errorDiv.style.display = 'none';
+            summaryDiv.style.display = 'none';
+            summarizeBtn.disabled = true;
 
-            // Vérifier l'état de l'authentification
-            const isAuthenticated = await authService.checkAuthStatus();
+            // Récupérer le contenu de la page
+            const content = await geminiService.getPageContent();
             
-            // Cacher le spinner et montrer l'interface appropriée
-            popupUI.showLoading(false);
-            this.updateInterface(isAuthenticated);
-
-            // Configurer les écouteurs d'événements
-            this.setupEventListeners();
+            // Générer le résumé avec Gemini
+            const summary = await geminiService.generateSummary(content);
+            
+            // Afficher le résumé
+            summaryDiv.textContent = summary;
+            summaryDiv.style.display = 'block';
         } catch (error) {
-            console.error('Erreur d\'initialisation:', error);
-            popupUI.showLoading(false);
-            popupUI.showError('Erreur lors de l\'initialisation de l\'extension');
+            // Afficher l'erreur
+            errorDiv.textContent = error.message;
+            errorDiv.style.display = 'block';
+        } finally {
+            // Cacher le loading
+            loadingDiv.style.display = 'none';
+            summarizeBtn.disabled = false;
         }
-    }
-
-    updateInterface(isAuthenticated) {
-        if (isAuthenticated) {
-            popupUI.showSummaryInterface();
-        } else {
-            popupUI.showLoginInterface();
-        }
-    }
-
-    setupEventListeners() {
-        // Gérer le clic sur le bouton de connexion
-        popupUI.addLoginButtonListener(async () => {
-            try {
-                popupUI.showLoading(true);
-                await authService.startGoogleAuth();
-                this.updateInterface(true);
-            } catch (error) {
-                console.error('Erreur de connexion:', error);
-                popupUI.showError('Erreur lors de la connexion');
-            } finally {
-                popupUI.showLoading(false);
-            }
-        });
-
-        // Gérer le clic sur le bouton de résumé
-        popupUI.addSummarizeButtonListener(async () => {
-            try {
-                const content = await summaryService.getPageContent();
-                const summary = await summaryService.generateSummary(content);
-                popupUI.displaySummary(summary);
-            } catch (error) {
-                console.error('Erreur de résumé:', error);
-                popupUI.showError('Erreur lors de la génération du résumé');
-            }
-        });
-    }
-}
-
-// Initialiser le contrôleur quand le DOM est chargé
-document.addEventListener('DOMContentLoaded', () => {
-    new PopupController();
+    });
 });

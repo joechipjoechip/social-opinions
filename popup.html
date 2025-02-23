@@ -1,36 +1,54 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reddit Résumés</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            width: 400px;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        #summary {
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        .loading {
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Reddit Résumés</h1>
-        
-        <div id="error-message" class="error-message"></div>
-
-        <div id="login-container" class="login-container">
-            <p>Connexion requise pour utiliser l'extension</p>
-            <button type="button" id="google-login-btn" class="google-btn">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google Logo">
-                Se connecter avec Google
-            </button>
-        </div>
-
-        <div id="summary-container" class="summary-container">
-            <button id="summarize-btn" class="primary-btn">Résume-moi ça !</button>
-            <div id="summary" class="summary-content"></div>
-        </div>
-
-        <div id="loading-container" class="loading-container">
-            <div class="loading-spinner"></div>
-            <p>Vérification de la connexion...</p>
-        </div>
-    </div>
-
+    <button id="summarizeBtn">Résumer cette page</button>
+    <div id="loading" class="loading">Génération du résumé en cours...</div>
+    <div id="error" class="error"></div>
+    <div id="summary"></div>
     <script type="module" src="popup.js"></script>
 </body>
 </html>
