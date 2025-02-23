@@ -1,7 +1,7 @@
 export class Visualizations {
     constructor() {
-        this.width = 600;
-        this.height = 350;
+        this.width = 250;
+        this.height = 150;
         this.margin = { top: 40, right: 120, bottom: 60, left: 180 };
     }
 
