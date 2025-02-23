@@ -1,7 +1,7 @@
 class GeminiService {
     constructor() {
         this.API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-        this.MAX_COMMENTS = 15; // Paramètre configurable pour la limite de commentaires
+        this.MAX_COMMENTS = 15;
     }
 
     setMaxComments(limit) {
@@ -20,6 +20,69 @@ class GeminiService {
         });
     }
 
+    parseGeminiResponse(text) {
+        try {
+            const start = text.indexOf('{');
+            const end = text.lastIndexOf('}') + 1;
+            if (start === -1 || end === 0) {
+                throw new Error('Aucun JSON trouvé dans la réponse');
+            }
+
+            const jsonStr = text.substring(start, end);
+            const data = JSON.parse(jsonStr);
+
+            return {
+                overview: {
+                    totalComments: Number(data.overview?.totalComments) || 0,
+                    mainOpinion: String(data.overview?.mainOpinion || ''),
+                    consensusLevel: Number(data.overview?.consensusLevel) || 0
+                },
+                opinionClusters: (data.opinionClusters || []).map(cluster => ({
+                    opinion: String(cluster.opinion || ''),
+                    totalVotes: Number(cluster.totalVotes) || 0,
+                    commentCount: Number(cluster.commentCount) || 0,
+                    avgScore: Number(cluster.avgScore) || 0,
+                    representativeComment: String(cluster.representativeComment || ''),
+                    relatedOpinions: Array.isArray(cluster.relatedOpinions) ? 
+                        cluster.relatedOpinions.map(String) : []
+                })),
+                consensusPoints: (data.consensusPoints || []).map(point => ({
+                    topic: String(point.topic || ''),
+                    agreementLevel: Number(point.agreementLevel) || 0,
+                    totalVotes: Number(point.totalVotes) || 0,
+                    keyEvidence: Array.isArray(point.keyEvidence) ? 
+                        point.keyEvidence.map(String) : []
+                })),
+                frictionPoints: (data.frictionPoints || []).map(point => ({
+                    topic: String(point.topic || ''),
+                    opinion1: {
+                        stance: String(point.opinion1?.stance || ''),
+                        votes: Number(point.opinion1?.votes) || 0,
+                        keyArguments: Array.isArray(point.opinion1?.keyArguments) ? 
+                            point.opinion1.keyArguments.map(String) : []
+                    },
+                    opinion2: {
+                        stance: String(point.opinion2?.stance || ''),
+                        votes: Number(point.opinion2?.votes) || 0,
+                        keyArguments: Array.isArray(point.opinion2?.keyArguments) ? 
+                            point.opinion2.keyArguments.map(String) : []
+                    },
+                    intensityScore: Number(point.intensityScore) || 0
+                })),
+                voteDistribution: (data.voteDistribution || []).map(dist => ({
+                    opinionGroup: String(dist.opinionGroup || ''),
+                    totalVotes: Number(dist.totalVotes) || 0,
+                    percentageOfTotal: Number(dist.percentageOfTotal) || 0,
+                    topComments: Array.isArray(dist.topComments) ? 
+                        dist.topComments.map(String) : []
+                }))
+            };
+        } catch (error) {
+            console.error('Erreur lors du parsing de la réponse:', error);
+            throw new Error('Le format de la réponse est invalide');
+        }
+    }
+
     async generateSummary(pageContent) {
         try {
             const token = await this.getAccessToken();
@@ -33,53 +96,61 @@ class GeminiService {
                 body: JSON.stringify({
                     "contents": [{
                         "parts": [{
-                            "text": `Analyse les commentaires Reddit suivants et génère une réponse au format JSON strict avec les données d'analyse.
+                            "text": `Analyse les commentaires Reddit suivants en te concentrant sur l'identification des opinions principales, leur popularité basée sur les votes, et les points de consensus/friction. 
+IMPORTANT: Ta réponse doit être un objet JSON valide, sans aucun texte avant ou après. Utilise uniquement des guillemets doubles pour les chaînes.
 
 Titre: ${pageContent.postTitle}
 
-Commentaires (triés par score, top ${pageContent.comments.length}):
+Commentaires (triés par score):
 ${pageContent.comments.map(c => `[Score: ${c.score}] ${c.text}`).join('\n')}
 
-Réponds UNIQUEMENT avec un objet JSON valide contenant les champs suivants (tous les champs numériques doivent être des nombres, pas des chaînes) :
-
+Format de réponse attendu:
 {
     "overview": {
-        "totalComments": [nombre total],
-        "mainTopic": [sujet principal],
-        "generalSentiment": [sentiment général: "positive", "negative", ou "neutral"]
+        "totalComments": 123,
+        "mainOpinion": "L'opinion la plus soutenue",
+        "consensusLevel": 0.75
     },
-    "sentimentAnalysis": {
-        "positive": [pourcentage positif],
-        "negative": [pourcentage négatif],
-        "neutral": [pourcentage neutre]
-    },
-    "topComments": [
+    "opinionClusters": [
         {
-            "text": [texte du commentaire],
-            "score": [score],
-            "sentiment": [sentiment]
+            "opinion": "Résumé de l'opinion",
+            "totalVotes": 100,
+            "commentCount": 5,
+            "avgScore": 20,
+            "representativeComment": "Le commentaire le plus représentatif",
+            "relatedOpinions": ["opinion similaire 1", "opinion similaire 2"]
         }
     ],
-    "topics": [
+    "consensusPoints": [
         {
-            "name": [nom du sujet],
-            "count": [nombre d'occurrences],
-            "avgScore": [score moyen],
-            "sentiment": [sentiment dominant]
+            "topic": "Sujet de consensus",
+            "agreementLevel": 0.9,
+            "totalVotes": 150,
+            "keyEvidence": ["citation 1", "citation 2"]
         }
     ],
-    "scoreDistribution": [
+    "frictionPoints": [
         {
-            "range": [plage de score, ex: "0-10"],
-            "count": [nombre de commentaires]
+            "topic": "Sujet de désaccord",
+            "opinion1": {
+                "stance": "Première position",
+                "votes": 75,
+                "keyArguments": ["argument 1", "argument 2"]
+            },
+            "opinion2": {
+                "stance": "Position opposée",
+                "votes": 50,
+                "keyArguments": ["argument 1", "argument 2"]
+            },
+            "intensityScore": 0.8
         }
     ],
-    "controversialPoints": [
+    "voteDistribution": [
         {
-            "topic": [sujet controversé],
-            "perspective1": [première perspective],
-            "perspective2": [deuxième perspective],
-            "intensity": [niveau de controverse de 1 à 10]
+            "opinionGroup": "Groupe d'opinions",
+            "totalVotes": 200,
+            "percentageOfTotal": 35,
+            "topComments": ["commentaire 1", "commentaire 2"]
         }
     ]
 }`
@@ -101,26 +172,9 @@ Réponds UNIQUEMENT avec un objet JSON valide contenant les champs suivants (tou
             }
 
             const data = await response.json();
-            const analysisText = data.candidates[0].content.parts[0].text;
+            const result = data.candidates[0].content.parts[0].text;
             
-            // Extraire et valider le JSON
-            try {
-                const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-                if (!jsonMatch) {
-                    throw new Error('Format de réponse invalide');
-                }
-                const parsedData = JSON.parse(jsonMatch[0]);
-                
-                // Validation basique des champs requis
-                if (!parsedData.overview || !parsedData.sentimentAnalysis || !parsedData.topics) {
-                    throw new Error('Données JSON incomplètes');
-                }
-                
-                return parsedData;
-            } catch (parseError) {
-                console.error('Erreur de parsing JSON:', parseError);
-                throw new Error('Impossible de parser la réponse en JSON');
-            }
+            return this.parseGeminiResponse(result);
         } catch (error) {
             console.error('Erreur lors de la génération du résumé:', error);
             throw error;
@@ -128,88 +182,47 @@ Réponds UNIQUEMENT avec un objet JSON valide contenant les champs suivants (tou
     }
 
     async getPageContent() {
-        try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            
-            if (!tab.url.includes('reddit.com')) {
-                throw new Error('Cette extension fonctionne uniquement sur Reddit');
-            }
-
-            // Fonction qui sera exécutée dans le contexte de la page
-            const extractComments = () => {
-                const cleanText = (text) => {
-                    if (!text) return '';
-                    return text.trim()
-                        .replace(/\s+/g, ' ')
-                        .replace(/[^\x20-\x7E]/g, '');
-                };
-
-                // Récupérer le titre du post
-                const postTitle = document.querySelector('h1')?.textContent || '';
-                if (!postTitle) {
-                    throw new Error('Impossible de trouver le titre du post');
-                }
-
-                // Récupérer tous les commentaires
-                const comments = [];
-                const commentTrees = document.querySelectorAll('shreddit-comment-tree');
-
-                commentTrees.forEach(commentTree => {
-                    const commentElements = commentTree.querySelectorAll('shreddit-comment');
-                    commentElements.forEach(comment => {
-                        // Ignorer les commentaires supprimés ou modérés
-                        const commentText = comment.querySelector('.md')?.textContent;
-                        if (!commentText || 
-                            commentText.includes('[deleted]') || 
-                            commentText.includes('[removed]')) {
-                            return;
+        return new Promise((resolve, reject) => {
+            chrome.tabs.query({active: true, currentWindow: true}, async (tabs) => {
+                try {
+                    const tab = tabs[0];
+                    const results = await chrome.scripting.executeScript({
+                        target: {tabId: tab.id},
+                        func: () => {
+                            const comments = [];
+                            document.querySelectorAll('.Comment').forEach(comment => {
+                                const scoreElem = comment.querySelector('[id^="vote-arrows-t1"] + div');
+                                const textElem = comment.querySelector('.RichTextJSON-root');
+                                if (scoreElem && textElem) {
+                                    const score = parseInt(scoreElem.textContent) || 0;
+                                    comments.push({
+                                        text: textElem.textContent.trim(),
+                                        score: score
+                                    });
+                                }
+                            });
+                            
+                            comments.sort((a, b) => b.score - a.score);
+                            
+                            return {
+                                postTitle: document.querySelector('h1')?.textContent || '',
+                                comments: comments
+                            };
                         }
-
-                        // Récupérer le score
-                        const scoreElement = comment.querySelector('span faceplate-number');
-                        const score = scoreElement ? parseInt(scoreElement.getAttribute('number')) || 0 : 0;
-
-                        comments.push({
-                            text: cleanText(commentText),
-                            score: score
-                        });
                     });
-                });
 
-                if (comments.length === 0) {
-                    throw new Error('Aucun commentaire trouvé');
+                    if (results && results[0]?.result) {
+                        const content = results[0].result;
+                        content.comments = content.comments.slice(0, this.MAX_COMMENTS);
+                        resolve(content);
+                    } else {
+                        reject(new Error('Impossible de récupérer le contenu de la page'));
+                    }
+                } catch (error) {
+                    reject(error);
                 }
-
-                // Trier les commentaires par score (du plus haut au plus bas)
-                comments.sort((a, b) => b.score - a.score);
-
-                // Limiter aux 15 commentaires les plus pertinents
-                const topComments = comments.slice(0, 15);
-
-                return {
-                    postTitle: cleanText(postTitle),
-                    comments: topComments,
-                    totalComments: comments.length
-                };
-            };
-
-            // Exécuter le script d'extraction
-            const result = await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                func: extractComments
             });
-
-            const content = result[0].result;
-            
-            if (!content.comments.length) {
-                throw new Error('Aucun commentaire trouvé sur cette page. Assurez-vous d\'être sur une page de post Reddit avec des commentaires.');
-            }
-
-            return content;
-        } catch (error) {
-            console.error('Erreur lors de la récupération des commentaires:', error);
-            throw new Error('Impossible de lire les commentaires. Assurez-vous d\'être sur une page de post Reddit.');
-        }
+        });
     }
 }
 

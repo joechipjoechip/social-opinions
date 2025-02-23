@@ -29,6 +29,15 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
+        .chart-container h3 {
+            margin: 0 0 5px 0;
+            color: #1a1a1a;
+        }
+        .chart-description {
+            font-size: 14px;
+            color: #666;
+            margin: 0 0 15px 0;
+        }
         #summary {
             margin: 20px 0;
             line-height: 1.6;
@@ -106,34 +115,38 @@
     <div class="visualization-container">
         <div class="charts-grid">
             <div class="chart-container">
-                <h3>Analyse des Sentiments</h3>
+                <h3>Distribution des Opinions</h3>
+                <p class="chart-description">Répartition des opinions principales et leur popularité basée sur les votes</p>
                 <div id="sentimentChart"></div>
             </div>
             <div class="chart-container">
-                <h3>Sujets Principaux</h3>
+                <h3>Points de Consensus</h3>
+                <p class="chart-description">Visualisation des sujets sur lesquels la communauté s'accorde</p>
                 <div id="topicsChart"></div>
             </div>
             <div class="chart-container">
-                <h3>Distribution des Scores</h3>
+                <h3>Points de Friction</h3>
+                <p class="chart-description">Comparaison des opinions opposées et leur support respectif</p>
                 <div id="scoresChart"></div>
             </div>
             <div class="chart-container">
-                <h3>Points de Controverse</h3>
+                <h3>Groupes d'Opinions</h3>
+                <p class="chart-description">Vue d'ensemble des groupes d'opinions similaires et leur poids dans la discussion</p>
                 <div id="controversyChart"></div>
             </div>
         </div>
 
         <div id="summary">
             <div class="stat-card">
-                <h3>Aperçu</h3>
+                <h3>Vue d'Ensemble</h3>
                 <div id="overviewContent"></div>
             </div>
             <div class="stat-card">
-                <h3>Commentaires Marquants</h3>
+                <h3>Opinions Principales</h3>
                 <div id="topCommentsContent"></div>
             </div>
             <div class="stat-card">
-                <h3>Points de Controverse</h3>
+                <h3>Points de Désaccord</h3>
                 <div id="controversialContent"></div>
             </div>
         </div>
