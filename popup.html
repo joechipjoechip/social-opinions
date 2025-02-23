@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit Résumés</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Reddit Résumés</h1>
+        
+        <div id="error-message" class="error-message"></div>
+
+        <div id="login-container" class="login-container">
+            <p>Connexion requise pour utiliser l'extension</p>
+            <button type="button" id="google-login-btn" class="google-btn">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google Logo">
+                Se connecter avec Google
+            </button>
+        </div>
+
+        <div id="summary-container" class="summary-container">
+            <button id="summarize-btn" class="primary-btn">Résume-moi ça !</button>
+            <div id="summary" class="summary-content"></div>
+        </div>
+
+        <div id="loading-container" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>Vérification de la connexion...</p>
+        </div>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+</body>
+</html>
