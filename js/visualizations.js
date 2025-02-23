@@ -1,8 +1,8 @@
 export class Visualizations {
     constructor() {
-        this.width = 250;
-        this.height = 150;
-        this.margin = { top: 40, right: 120, bottom: 60, left: 180 };
+        this.width = 700;
+        this.height = 200;
+        this.margin = { top: 20, right: 80, bottom: 30, left: 120 };
     }
 
     getContainerDimensions(containerId) {
@@ -163,7 +163,7 @@ export class Visualizations {
                 const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
                 return midAngle < Math.PI ? "start" : "end";
             })
-            .text(d => this.truncateText(d.data.topic, 50))
+            .text(d => this.truncateText(d.data.topic, 30))
             .append("tspan")
             .attr("x", 0)
             .attr("dy", "1.2em")
