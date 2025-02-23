@@ -4,8 +4,9 @@
     <title>Reddit Resume</title>
     <style>
         body {
-            width: 800px;
-            padding: 20px;
+            width: 90vw;
+            height: 90vh;
+            padding: 10px;
             font-family: Arial, sans-serif;
         }
         .visualization-container {
@@ -16,12 +17,13 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            display: flex;
+            flex-flow: column nowrap;
             gap: 20px;
             margin: 20px 0;
         }
         .chart-container {
+            width: 100%;
             background: white;
             padding: 15px;
             border-radius: 8px;
