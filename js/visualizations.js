@@ -1,55 +1,97 @@
 export class Visualizations {
+    constructor() {
+        this.width = 600;
+        this.height = 350;
+        this.margin = { top: 40, right: 120, bottom: 60, left: 180 };
+    }
+
+    getContainerDimensions(containerId) {
+        const container = document.getElementById(containerId);
+        const rect = container.getBoundingClientRect();
+        return {
+            width: rect.width,
+            height: rect.height
+        };
+    }
+
+    truncateText(text, maxLength) {
+        return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
+    }
+
+    wrapText(text, width, element) {
+        const words = text.split(/\s+/).reverse();
+        let word,
+            line = [],
+            lineNumber = 0,
+            lineHeight = 1.1,
+            y = element.attr("y"),
+            dy = parseFloat(element.attr("dy")),
+            tspan = element.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+            
+        while (word = words.pop()) {
+            line.push(word);
+            tspan.text(line.join(" "));
+            if (tspan.node().getComputedTextLength() > width) {
+                line.pop();
+                tspan.text(line.join(" "));
+                line = [word];
+                tspan = element.append("tspan")
+                    .attr("x", 0)
+                    .attr("y", y)
+                    .attr("dy", ++lineNumber * lineHeight + dy + "em")
+                    .text(word);
+            }
+        }
+    }
+
     createOpinionClusterChart(data) {
-        const width = 600;
-        const height = 400;
-        const margin = { top: 20, right: 20, bottom: 30, left: 40 };
-
-        // Nettoyer le conteneur
         d3.select("#sentimentChart").html("");
-
-        // Créer le SVG
+        
         const svg = d3.select("#sentimentChart")
             .append("svg")
-            .attr("width", width)
-            .attr("height", height);
+            .attr("width", this.width)
+            .attr("height", this.height)
+            .append("g")
+            .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
 
-        // Créer l'échelle pour les clusters
+        const chartWidth = this.width - this.margin.left - this.margin.right;
+        const chartHeight = this.height - this.margin.top - this.margin.bottom;
+
         const y = d3.scaleBand()
             .domain(data.opinionClusters.map(d => d.opinion))
-            .range([margin.top, height - margin.bottom])
-            .padding(0.1);
+            .range([0, chartHeight])
+            .padding(0.2);
 
         const x = d3.scaleLinear()
             .domain([0, d3.max(data.opinionClusters, d => d.totalVotes)])
-            .range([margin.left, width - margin.right]);
+            .range([0, chartWidth]);
 
-        // Créer les barres
         svg.selectAll("rect")
             .data(data.opinionClusters)
             .enter()
             .append("rect")
-            .attr("x", margin.left)
             .attr("y", d => y(d.opinion))
-            .attr("width", d => x(d.totalVotes) - margin.left)
+            .attr("x", 0)
+            .attr("width", d => x(d.totalVotes))
             .attr("height", y.bandwidth())
             .attr("fill", "#FF4500")
-            .attr("opacity", d => 0.4 + (d.avgScore / d3.max(data.opinionClusters, d => d.avgScore)) * 0.6);
+            .attr("opacity", 0.7);
 
-        // Ajouter les axes
-        svg.append("g")
-            .attr("transform", `translate(0,${height - margin.bottom})`)
-            .call(d3.axisBottom(x).ticks(5));
-
-        svg.append("g")
-            .attr("transform", `translate(${margin.left},0)`)
+        const yAxis = svg.append("g")
             .call(d3.axisLeft(y));
 
-        // Ajouter les labels
-        svg.selectAll(".score-label")
+        yAxis.selectAll(".tick text")
+            .call(text => this.wrapText(text.text(), this.margin.left - 10, text));
+
+        svg.append("g")
+            .attr("transform", `translate(0,${chartHeight})`)
+            .call(d3.axisBottom(x));
+
+        svg.selectAll(".value-label")
             .data(data.opinionClusters)
             .enter()
             .append("text")
-            .attr("class", "score-label")
+            .attr("class", "value-label")
             .attr("x", d => x(d.totalVotes) + 5)
             .attr("y", d => y(d.opinion) + y.bandwidth() / 2)
             .attr("dy", "0.35em")
@@ -57,38 +99,34 @@ export class Visualizations {
     }
 
     createConsensusChart(data) {
-        const width = 600;
-        const height = 400;
-        const margin = { top: 20, right: 20, bottom: 30, left: 40 };
-        const radius = Math.min(width, height) / 2 - margin.top;
-
-        // Nettoyer le conteneur
         d3.select("#topicsChart").html("");
 
-        // Créer le SVG
+        const radius = Math.min(this.width - this.margin.left - this.margin.right, 
+                              this.height - this.margin.top - this.margin.bottom) / 2;
+
         const svg = d3.select("#topicsChart")
             .append("svg")
-            .attr("width", width)
-            .attr("height", height)
+            .attr("width", this.width)
+            .attr("height", this.height)
             .append("g")
-            .attr("transform", `translate(${width/2},${height/2})`);
+            .attr("transform", `translate(${this.width/2},${this.height/2})`);
 
-        // Créer l'échelle de couleurs
         const color = d3.scaleSequential()
             .domain([0, 1])
             .interpolator(d3.interpolateRdYlGn);
 
-        // Créer le pie layout
         const pie = d3.pie()
             .value(d => d.totalVotes)
             .sort(null);
 
-        // Créer l'arc
         const arc = d3.arc()
             .innerRadius(radius * 0.6)
             .outerRadius(radius);
 
-        // Créer les segments
+        const outerArc = d3.arc()
+            .innerRadius(radius * 1.1)
+            .outerRadius(radius * 1.1);
+
         const segments = svg.selectAll("path")
             .data(pie(data.consensusPoints))
             .enter()
@@ -98,144 +136,178 @@ export class Visualizations {
             .attr("stroke", "white")
             .style("stroke-width", "2px");
 
-        // Ajouter les labels
-        const arcLabel = d3.arc()
-            .innerRadius(radius * 0.8)
-            .outerRadius(radius * 0.8);
+        svg.selectAll("polyline")
+            .data(pie(data.consensusPoints))
+            .enter()
+            .append("polyline")
+            .attr("points", d => {
+                const pos = outerArc.centroid(d);
+                const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                pos[0] = radius * 1.1 * (midAngle < Math.PI ? 1 : -1);
+                return [arc.centroid(d), outerArc.centroid(d), pos];
+            })
+            .style("fill", "none")
+            .style("stroke", "#999");
 
         svg.selectAll("text")
             .data(pie(data.consensusPoints))
             .enter()
             .append("text")
-            .attr("transform", d => `translate(${arcLabel.centroid(d)})`)
-            .attr("dy", "0.35em")
-            .attr("text-anchor", "middle")
-            .text(d => d.data.topic.substring(0, 20) + "...");
+            .attr("transform", d => {
+                const pos = outerArc.centroid(d);
+                const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                pos[0] = radius * 1.2 * (midAngle < Math.PI ? 1 : -1);
+                return `translate(${pos})`;
+            })
+            .style("text-anchor", d => {
+                const midAngle = d.startAngle + (d.endAngle - d.startAngle) / 2;
+                return midAngle < Math.PI ? "start" : "end";
+            })
+            .text(d => this.truncateText(d.data.topic, 50))
+            .append("tspan")
+            .attr("x", 0)
+            .attr("dy", "1.2em")
+            .style("font-size", "0.8em")
+            .text(d => `${Math.round(d.data.agreementLevel * 100)}% accord`);
     }
 
     createFrictionChart(data) {
-        const width = 600;
-        const height = 400;
-        const margin = { top: 20, right: 20, bottom: 30, left: 40 };
-
-        // Nettoyer le conteneur
         d3.select("#scoresChart").html("");
 
-        // Créer le SVG
         const svg = d3.select("#scoresChart")
             .append("svg")
-            .attr("width", width)
-            .attr("height", height);
+            .attr("width", this.width)
+            .attr("height", this.height)
+            .append("g")
+            .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
 
-        // Préparer les données
-        const frictionData = data.frictionPoints.map(point => ({
-            topic: point.topic,
-            opinion1Votes: point.opinion1.votes,
-            opinion2Votes: point.opinion2.votes,
-            intensity: point.intensityScore
-        }));
+        const chartWidth = this.width - this.margin.left - this.margin.right;
+        const chartHeight = this.height - this.margin.top - this.margin.bottom;
 
-        // Créer les échelles
-        const x = d3.scaleBand()
-            .domain(frictionData.map(d => d.topic))
-            .range([margin.left, width - margin.right])
-            .padding(0.1);
+        const y = d3.scaleBand()
+            .domain(data.frictionPoints.map(d => d.topic))
+            .range([0, chartHeight])
+            .padding(0.2);
 
-        const y = d3.scaleLinear()
-            .domain([
-                -d3.max(frictionData, d => Math.max(d.opinion1Votes, d.opinion2Votes)),
-                d3.max(frictionData, d => Math.max(d.opinion1Votes, d.opinion2Votes))
-            ])
-            .range([height - margin.bottom, margin.top]);
+        const maxVotes = d3.max(data.frictionPoints, d => 
+            Math.max(d.opinion1.votes, d.opinion2.votes));
 
-        // Créer les barres
+        const x = d3.scaleLinear()
+            .domain([-maxVotes, maxVotes])
+            .range([0, chartWidth]);
+
+        const yAxis = svg.append("g")
+            .call(d3.axisLeft(y));
+
+        yAxis.selectAll(".tick text")
+            .call(text => this.wrapText(text.text(), this.margin.left - 10, text));
+
+        svg.append("g")
+            .attr("transform", `translate(0,${chartHeight})`)
+            .call(d3.axisBottom(x));
+
         svg.selectAll(".opinion1")
-            .data(frictionData)
+            .data(data.frictionPoints)
             .enter()
             .append("rect")
             .attr("class", "opinion1")
-            .attr("x", d => x(d.topic))
-            .attr("y", d => y(d.opinion1Votes))
-            .attr("width", x.bandwidth() / 2)
-            .attr("height", d => y(0) - y(d.opinion1Votes))
+            .attr("y", d => y(d.topic))
+            .attr("x", d => x(-d.opinion1.votes))
+            .attr("width", d => x(0) - x(-d.opinion1.votes))
+            .attr("height", y.bandwidth())
             .attr("fill", "#FF4500")
-            .attr("opacity", d => 0.4 + d.intensity * 0.6);
+            .attr("opacity", 0.7);
 
         svg.selectAll(".opinion2")
-            .data(frictionData)
+            .data(data.frictionPoints)
             .enter()
             .append("rect")
             .attr("class", "opinion2")
-            .attr("x", d => x(d.topic) + x.bandwidth() / 2)
-            .attr("y", d => y(d.opinion2Votes))
-            .attr("width", x.bandwidth() / 2)
-            .attr("height", d => y(0) - y(d.opinion2Votes))
+            .attr("y", d => y(d.topic))
+            .attr("x", x(0))
+            .attr("width", d => x(d.opinion2.votes) - x(0))
+            .attr("height", y.bandwidth())
             .attr("fill", "#0079D3")
-            .attr("opacity", d => 0.4 + d.intensity * 0.6);
+            .attr("opacity", 0.7);
 
-        // Ajouter les axes
-        svg.append("g")
-            .attr("transform", `translate(0,${y(0)})`)
-            .call(d3.axisBottom(x));
+        svg.selectAll(".value-label-1")
+            .data(data.frictionPoints)
+            .enter()
+            .append("text")
+            .attr("class", "value-label")
+            .attr("x", d => x(-d.opinion1.votes) - 5)
+            .attr("y", d => y(d.topic) + y.bandwidth() / 2)
+            .attr("text-anchor", "end")
+            .attr("dy", "0.35em")
+            .text(d => d.opinion1.votes);
 
-        svg.append("g")
-            .attr("transform", `translate(${margin.left},0)`)
-            .call(d3.axisLeft(y));
+        svg.selectAll(".value-label-2")
+            .data(data.frictionPoints)
+            .enter()
+            .append("text")
+            .attr("class", "value-label")
+            .attr("x", d => x(d.opinion2.votes) + 5)
+            .attr("y", d => y(d.topic) + y.bandwidth() / 2)
+            .attr("dy", "0.35em")
+            .text(d => d.opinion2.votes);
     }
 
     createVoteDistributionChart(data) {
-        const width = 600;
-        const height = 400;
-        const margin = { top: 20, right: 20, bottom: 30, left: 40 };
-
-        // Nettoyer le conteneur
         d3.select("#controversyChart").html("");
 
-        // Créer le SVG
         const svg = d3.select("#controversyChart")
             .append("svg")
-            .attr("width", width)
-            .attr("height", height);
+            .attr("width", this.width)
+            .attr("height", this.height);
 
-        // Créer le treemap layout
+        const chartWidth = this.width - this.margin.left - this.margin.right;
+        const chartHeight = this.height - this.margin.top - this.margin.bottom;
+
+        const treemap = d3.treemap()
+            .size([chartWidth, chartHeight])
+            .padding(1)
+            .round(true);
+
         const root = d3.hierarchy({children: data.voteDistribution})
             .sum(d => d.totalVotes);
 
-        const treemap = d3.treemap()
-            .size([width - margin.left - margin.right, height - margin.top - margin.bottom])
-            .padding(1);
-
         treemap(root);
 
-        // Créer l'échelle de couleurs
         const color = d3.scaleSequential()
             .domain([0, 100])
             .interpolator(d3.interpolateYlOrRd);
 
-        // Créer les rectangles
         const cell = svg.selectAll("g")
             .data(root.leaves())
             .enter()
             .append("g")
-            .attr("transform", d => `translate(${d.x0 + margin.left},${d.y0 + margin.top})`);
+            .attr("transform", d => `translate(${d.x0 + this.margin.left},${d.y0 + this.margin.top})`);
 
         cell.append("rect")
             .attr("width", d => d.x1 - d.x0)
             .attr("height", d => d.y1 - d.y0)
             .attr("fill", d => color(d.data.percentageOfTotal));
 
+        const cellPadding = 4;
+        
         cell.append("text")
-            .attr("x", 5)
-            .attr("y", 15)
-            .text(d => d.data.opinionGroup.substring(0, 15) + "...")
-            .attr("font-size", "12px")
-            .attr("fill", "white");
-
-        cell.append("text")
-            .attr("x", 5)
-            .attr("y", 30)
-            .text(d => d.data.percentageOfTotal.toFixed(1) + "%")
-            .attr("font-size", "10px")
-            .attr("fill", "white");
+            .attr("x", cellPadding)
+            .attr("y", cellPadding)
+            .selectAll("tspan")
+            .data(d => {
+                const lines = [
+                    this.truncateText(d.data.opinionGroup, 30),
+                    `${d.data.percentageOfTotal.toFixed(1)}%`,
+                    `${d.data.totalVotes} votes`
+                ];
+                return lines;
+            })
+            .enter()
+            .append("tspan")
+            .attr("x", cellPadding)
+            .attr("dy", (d, i) => i ? "1.2em" : 0)
+            .attr("fill", "white")
+            .style("font-size", (d, i) => i ? "0.8em" : "1em")
+            .text(d => d);
     }
 }
