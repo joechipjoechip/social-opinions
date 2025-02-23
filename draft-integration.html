@@ -1,0 +1,108 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Reddit Resume</title>
+    <script src="js/lib/d3.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button id="summarizeBtn">Analyser les commentaires</button>
+    <div id="loading" class="loading" style="display: none;">Analyse en cours...</div>
+    <div id="error" class="error" style="display: none;"></div>
+
+    <div class="visualization-container" style="display: block;">
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h3>Distribution des Opinions</h3>
+                <p class="chart-description">Répartition des opinions principales et leur popularité basée sur les votes</p>
+                <div id="sentimentChart"><svg width="600" height="150" viewBox="0 0 600 150" preserveAspectRatio="xMidYMid meet" style="font-family: Arial, sans-serif;"><g transform="translate(240,20)"><rect class="grid-background" y="11.492537313432834" x="-240" width="600" height="21.343283582089555" fill="#ffffff" rx="2"></rect><rect class="grid-background" y="44.32835820895522" x="-240" width="600" height="21.343283582089555" fill="#f9f9f9" rx="2"></rect><rect class="grid-background" y="77.16417910447761" x="-240" width="600" height="21.343283582089555" fill="#ffffff" rx="2"></rect><rect class="bar" y="11.492537313432834" x="0" width="300" height="21.343283582089555" fill="#FF4500" rx="2" style="transition: 0.2s;"></rect><rect class="bar" y="44.32835820895522" x="0" width="240" height="21.343283582089555" fill="#FF4500" rx="2" style="transition: 0.2s;"></rect><rect class="bar" y="77.16417910447761" x="0" width="180" height="21.343283582089555" fill="#FF4500" rx="2" style="transition: 0.2s;"></rect><g class="y-label" transform="translate(-10,22.16417910447761)"><text x="-10" y="0" text-anchor="end" alignment-baseline="middle" style="font-size: 12px; font-family: Arial, sans-serif; fill: rgb(51, 51, 51);">L'Europe présente des avantages économiques solides</text></g><g class="y-label" transform="translate(-10,55)"><text x="-10" y="0" text-anchor="end" alignment-baseline="middle" style="font-size: 12px; font-family: Arial, sans-serif; fill: rgb(51, 51, 51);">L'Europe offre un environnement politique stable</text></g><g class="y-label" transform="translate(-10,87.83582089552239)"><text x="-10" y="0" text-anchor="end" alignment-baseline="middle" style="font-size: 12px; font-family: Arial, sans-serif; fill: rgb(51, 51, 51);">L'Europe est confrontée à des défis</text></g><g class="value-label" transform="translate(305,22.16417910447761)"><rect x="-3" y="-1" width="6" height="2" fill="white" rx="2" style="opacity: 0.9;"></rect><text dy="0.35em" style="font-size: 12px; font-family: Arial, sans-serif; fill: rgb(51, 51, 51);">100</text></g><g class="value-label" transform="translate(245,55)"><rect x="-3" y="-1" width="6" height="2" fill="white" rx="2" style="opacity: 0.9;"></rect><text dy="0.35em" style="font-size: 12px; font-family: Arial, sans-serif; fill: rgb(51, 51, 51);">80</text></g><g class="value-label" transform="translate(185,87.83582089552239)"><rect x="-3" y="-1" width="6" height="2" fill="white" rx="2" style="opacity: 0.9;"></rect><text dy="0.35em" style="font-size: 12px; font-family: Arial, sans-serif; fill: rgb(51, 51, 51);">60</text></g></g></svg></div>
+            </div>
+            <div class="chart-container">
+                <h3>Points de Consensus</h3>
+                <p class="chart-description">Visualisation des sujets sur lesquels la communauté s'accorde</p>
+                <div id="topicsChart"><svg width="720.47265625" height="150" viewBox="0 0 720.47265625 150" preserveAspectRatio="xMidYMid meet" style="font-family: Arial, sans-serif;"><g transform="translate(360.236328125,75)"><path d="M0,-75A75,75,0,1,1,0,75A75,75,0,1,1,0,-75M0,-56.25A56.25,56.25,0,1,0,0,56.25A56.25,56.25,0,1,0,0,-56.25Z" fill="rgb(34, 150, 79)" stroke="white" style="stroke-width: 1.5px; transition: 0.2s;"></path><g class="label-group" transform="translate(105,90)"><rect x="-4" y="-2" width="8" height="4" fill="white" rx="2" style="opacity: 0.95;"></rect><g style="text-anchor: start;"><text dy="0em" style="font-size: 11px; font-family: Arial, sans-serif; fill: rgb(51, 51, 51);">Investir en Europe est une opportunité judicieuse</text><text dy="1.5em" style="font-size: 10px; font-family: Arial, sans-serif; fill: rgb(102, 102, 102);">90% accord</text></g></g></g></svg></div>
+            </div>
+            <div class="chart-container">
+                <h3>Points de Friction</h3>
+                <p class="chart-description">Comparaison des opinions opposées et leur support respectif</p>
+                <div id="scoresChart"><svg width="700" height="150" viewBox="0 0 700 150" preserveAspectRatio="xMidYMid meet" style="font-family: Arial, sans-serif;"><g transform="translate(240,20)"><g fill="none" font-size="10" font-family="sans-serif" text-anchor="end"><path class="domain" stroke="currentColor" d="M-6,0.5H0.5V110.5H-6"></path><g class="tick" opacity="1" transform="translate(0,55)"><line stroke="currentColor" x2="-6"></line><text fill="currentColor" x="-9" dy="0.32em"><tspan x="-9" dy="0.32em">Le moment est-il opportun pour investir en Europe ?</tspan></text></g></g><g transform="translate(0,110)" fill="none" font-size="10" font-family="sans-serif" text-anchor="middle"><path class="domain" stroke="currentColor" d="M0.5,6V0.5H400.5V6"></path><g class="tick" opacity="1" transform="translate(40.5,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">−60</text></g><g class="tick" opacity="1" transform="translate(93.83333333333333,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">−40</text></g><g class="tick" opacity="1" transform="translate(147.16666666666666,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">−20</text></g><g class="tick" opacity="1" transform="translate(200.5,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">0</text></g><g class="tick" opacity="1" transform="translate(253.83333333333331,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">20</text></g><g class="tick" opacity="1" transform="translate(307.1666666666667,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">40</text></g><g class="tick" opacity="1" transform="translate(360.5,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">60</text></g></g><rect class="opinion1" y="18.333333333333336" x="0" width="200" height="73.33333333333333" fill="#FF4500" opacity="0.7"></rect><rect class="opinion2" y="18.333333333333336" x="200" width="133.33333333333337" height="73.33333333333333" fill="#0079D3" opacity="0.7"></rect><text class="value-label" x="-5" y="55" text-anchor="end" dy="0.35em">75</text><text class="value-label" x="338.33333333333337" y="55" dy="0.35em">50</text></g></svg></div>
+            </div>
+            <div class="chart-container">
+                <h3>Groupes d'Opinions</h3>
+                <p class="chart-description">Vue d'ensemble des groupes d'opinions similaires et leur poids dans la discussion</p>
+                <div id="controversyChart"><svg width="700" height="150" viewBox="0 0 700 150" preserveAspectRatio="xMidYMid meet" style="font-family: Arial, sans-serif;"><g transform="translate(241,21)"><rect width="150" height="108" fill="rgb(254, 186, 87)"></rect><text x="4" y="4"><tspan x="4" dy="0" fill="white" style="font-size: 1em;">L'Europe est une opportunité d...</tspan><tspan x="4" dy="1.2em" fill="white" style="font-size: 0.8em;">35.0%</tspan><tspan x="4" dy="1.2em" fill="white" style="font-size: 0.8em;">200 votes</tspan></text></g><g transform="translate(392,21)"><rect width="111" height="108" fill="rgb(254, 214, 118)"></rect><text x="4" y="4"><tspan x="4" dy="0" fill="white" style="font-size: 1em;">L'Europe présente des défis</tspan><tspan x="4" dy="1.2em" fill="white" style="font-size: 0.8em;">25.0%</tspan><tspan x="4" dy="1.2em" fill="white" style="font-size: 0.8em;">150 votes</tspan></text></g><g transform="translate(504,21)"><rect width="135" height="60" fill="rgb(255, 230, 145)"></rect><text x="4" y="4"><tspan x="4" dy="0" fill="white" style="font-size: 1em;">Le moment est opportun pour in...</tspan><tspan x="4" dy="1.2em" fill="white" style="font-size: 0.8em;">17.0%</tspan><tspan x="4" dy="1.2em" fill="white" style="font-size: 0.8em;">100 votes</tspan></text></g><g transform="translate(504,82)"><rect width="135" height="47" fill="rgb(255, 236, 159)"></rect><text x="4" y="4"><tspan x="4" dy="0" fill="white" style="font-size: 1em;">Il faut attendre avant d'inves...</tspan><tspan x="4" dy="1.2em" fill="white" style="font-size: 0.8em;">13.0%</tspan><tspan x="4" dy="1.2em" fill="white" style="font-size: 0.8em;">80 votes</tspan></text></g></svg></div>
+            </div>
+        </div>
+
+        <div id="summary">
+            <div class="stat-card">
+                <h3>Vue d'Ensemble</h3>
+                <div id="overviewContent">
+        <div class="stat-value">123</div>
+        <p>commentaires analysés</p>
+        <p><strong>Opinion dominante :</strong> L'Europe offre des opportunités d'investissement prometteuses en raison de sa croissance économique stable, de ses infrastructures développées et de son climat politique favorable.</p>
+        <p><strong>Niveau de consensus :</strong> 75%</p>
+    </div>
+            </div>
+            <div class="stat-card">
+                <h3>Opinions Principales</h3>
+                <div id="topCommentsContent">
+        <div class="stat-card">
+            <p><strong>L'Europe présente des avantages économiques solides</strong></p>
+            <p>L'économie européenne est en pleine croissance, avec des niveaux d'inflation bas et un faible taux de chômage.</p>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                <span>Votes: <strong>100</strong></span>
+                <span>Commentaires: <strong>5</strong></span>
+            </div>
+        </div>
+    
+        <div class="stat-card">
+            <p><strong>L'Europe offre un environnement politique stable</strong></p>
+            <p>Les gouvernements européens sont généralement stables et démocratiques, offrant un cadre juridique solide pour les investisseurs.</p>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                <span>Votes: <strong>80</strong></span>
+                <span>Commentaires: <strong>4</strong></span>
+            </div>
+        </div>
+    
+        <div class="stat-card">
+            <p><strong>L'Europe est confrontée à des défis</strong></p>
+            <p>L'Europe est confrontée à des défis tels que la crise énergétique actuelle et les tensions géopolitiques.</p>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                <span>Votes: <strong>60</strong></span>
+                <span>Commentaires: <strong>3</strong></span>
+            </div>
+        </div>
+    </div>
+            </div>
+            <div class="stat-card">
+                <h3>Points de Désaccord</h3>
+                <div id="controversialContent">
+        <div class="controversy-item">
+            <div style="display: flex; justify-content: space-between;">
+                <strong>Le moment est-il opportun pour investir en Europe ?</strong>
+                <span class="intensity">Intensité: 8/10</span>
+            </div>
+            <div style="margin-top: 8px;">
+                <div>
+                    <strong>Position 1 (75 votes):</strong>
+                    <p>Investir maintenant</p>
+                </div>
+                <div>
+                    <strong>Position 2 (50 votes):</strong>
+                    <p>Attendre avant d'investir</p>
+                </div>
+            </div>
+        </div>
+    </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/services/gemini.service.js"></script>
+    <script type="module" src="js/visualizations.js"></script>
+    <script type="module" src="popup.js"></script>
+
+
+</body></html>

@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <title>Reddit Resume</title>
-    <script src="js/lib/d3.min.js"></script>
+    <script src="node_modules/chart.js/dist/chart.umd.js"></script>
+    <script src="node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,43 +14,55 @@
     <div id="loading" class="loading">Analyse en cours...</div>
     <div id="error" class="error"></div>
 
-    <div class="visualization-container">
-        <div class="charts-grid">
-            <div class="chart-container">
-                <h3>Distribution des Opinions</h3>
-                <p class="chart-description">Répartition des opinions principales et leur popularité basée sur les votes</p>
-                <div id="sentimentChart"></div>
-            </div>
-            <div class="chart-container">
-                <h3>Points de Consensus</h3>
-                <p class="chart-description">Visualisation des sujets sur lesquels la communauté s'accorde</p>
-                <div id="topicsChart"></div>
-            </div>
-            <div class="chart-container">
-                <h3>Points de Friction</h3>
-                <p class="chart-description">Comparaison des opinions opposées et leur support respectif</p>
-                <div id="scoresChart"></div>
-            </div>
-            <div class="chart-container">
-                <h3>Groupes d'Opinions</h3>
-                <p class="chart-description">Vue d'ensemble des groupes d'opinions similaires et leur poids dans la discussion</p>
-                <div id="controversyChart"></div>
-            </div>
+    <div id="opinionVisualization" class="visualization-container">
+        <div class="visualization-header">
+            <h2 class="visualization-title">Distribution des Opinions</h2>
+            <p class="visualization-description">Répartition des opinions principales et leur popularité basée sur les votes</p>
         </div>
+        <div class="chart-wrapper">
+            <canvas id="sentimentChart"></canvas>
+        </div>
+    </div>
+    <div id="topicsVisualization" class="visualization-container">
+        <div class="visualization-header">
+            <h2 class="visualization-title">Points de Consensus</h2>
+            <p class="visualization-description">Visualisation des sujets sur lesquels la communauté s'accorde</p>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="topicsChart"></canvas>
+        </div>
+    </div>
+    <div id="scoresVisualization" class="visualization-container">
+        <div class="visualization-header">
+            <h2 class="visualization-title">Points de Friction</h2>
+            <p class="visualization-description">Comparaison des opinions opposées et leur support respectif</p>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="scoresChart"></canvas>
+        </div>
+    </div>
+    <div id="controversyVisualization" class="visualization-container">
+        <div class="visualization-header">
+            <h2 class="visualization-title">Groupes d'Opinions</h2>
+            <p class="visualization-description">Vue d'ensemble des groupes d'opinions similaires et leur poids dans la discussion</p>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="controversyChart"></canvas>
+        </div>
+    </div>
 
-        <div id="summary">
-            <div class="stat-card">
-                <h3>Vue d'Ensemble</h3>
-                <div id="overviewContent"></div>
-            </div>
-            <div class="stat-card">
-                <h3>Opinions Principales</h3>
-                <div id="topCommentsContent"></div>
-            </div>
-            <div class="stat-card">
-                <h3>Points de Désaccord</h3>
-                <div id="controversialContent"></div>
-            </div>
+    <div id="summary">
+        <div class="stat-card">
+            <h3>Vue d'Ensemble</h3>
+            <div id="overviewContent"></div>
+        </div>
+        <div class="stat-card">
+            <h3>Opinions Principales</h3>
+            <div id="topCommentsContent"></div>
+        </div>
+        <div class="stat-card">
+            <h3>Points de Désaccord</h3>
+            <div id="controversialContent"></div>
         </div>
     </div>
 
