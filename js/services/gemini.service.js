@@ -33,26 +33,63 @@ class GeminiService {
                 body: JSON.stringify({
                     "contents": [{
                         "parts": [{
-                            "text": `Analyse les commentaires suivants d'un post Reddit et génère un résumé structuré des différentes opinions et points de vue exprimés. Mets en valeur les commentaires les plus pertinents (basé sur leur score) et organise les informations de manière claire.
+                            "text": `Analyse les commentaires Reddit suivants et génère une réponse au format JSON strict avec les données d'analyse.
 
-Post: ${pageContent.postTitle}
+Titre: ${pageContent.postTitle}
 
-Commentaires (triés par score, limités aux 15 plus pertinents):
+Commentaires (triés par score, top ${pageContent.comments.length}):
 ${pageContent.comments.map(c => `[Score: ${c.score}] ${c.text}`).join('\n')}
 
-Format souhaité pour le résumé:
-1. Points clés et opinions principales
-2. Arguments pour et contre
-3. Expériences partagées
-4. Consensus général (si applicable)
-`
+Réponds UNIQUEMENT avec un objet JSON valide contenant les champs suivants (tous les champs numériques doivent être des nombres, pas des chaînes) :
+
+{
+    "overview": {
+        "totalComments": [nombre total],
+        "mainTopic": [sujet principal],
+        "generalSentiment": [sentiment général: "positive", "negative", ou "neutral"]
+    },
+    "sentimentAnalysis": {
+        "positive": [pourcentage positif],
+        "negative": [pourcentage négatif],
+        "neutral": [pourcentage neutre]
+    },
+    "topComments": [
+        {
+            "text": [texte du commentaire],
+            "score": [score],
+            "sentiment": [sentiment]
+        }
+    ],
+    "topics": [
+        {
+            "name": [nom du sujet],
+            "count": [nombre d'occurrences],
+            "avgScore": [score moyen],
+            "sentiment": [sentiment dominant]
+        }
+    ],
+    "scoreDistribution": [
+        {
+            "range": [plage de score, ex: "0-10"],
+            "count": [nombre de commentaires]
+        }
+    ],
+    "controversialPoints": [
+        {
+            "topic": [sujet controversé],
+            "perspective1": [première perspective],
+            "perspective2": [deuxième perspective],
+            "intensity": [niveau de controverse de 1 à 10]
+        }
+    ]
+}`
                         }]
                     }],
                     "generationConfig": {
                         "temperature": 0.7,
                         "topK": 40,
                         "topP": 0.95,
-                        "maxOutputTokens": 1024,
+                        "maxOutputTokens": 2048,
                     }
                 })
             });
@@ -64,7 +101,26 @@ Format souhaité pour le résumé:
             }
 
             const data = await response.json();
-            return data.candidates[0].content.parts[0].text;
+            const analysisText = data.candidates[0].content.parts[0].text;
+            
+            // Extraire et valider le JSON
+            try {
+                const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    throw new Error('Format de réponse invalide');
+                }
+                const parsedData = JSON.parse(jsonMatch[0]);
+                
+                // Validation basique des champs requis
+                if (!parsedData.overview || !parsedData.sentimentAnalysis || !parsedData.topics) {
+                    throw new Error('Données JSON incomplètes');
+                }
+                
+                return parsedData;
+            } catch (parseError) {
+                console.error('Erreur de parsing JSON:', parseError);
+                throw new Error('Impossible de parser la réponse en JSON');
+            }
         } catch (error) {
             console.error('Erreur lors de la génération du résumé:', error);
             throw error;

@@ -3,6 +3,13 @@
   "name": "Reddit Resume",
   "version": "1.0",
   "description": "Generate summaries of Reddit comment threads",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "web_accessible_resources": [{
+    "resources": ["node_modules/d3/dist/*"],
+    "matches": ["<all_urls>"]
+  }],
   "oauth2": {
     "client_id": "274847669888-3g71rhjdrk3ivni2opnkg6so7m5b0md5.apps.googleusercontent.com",
     "scopes": [
