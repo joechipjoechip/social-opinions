@@ -1,43 +1,50 @@
 {
   "manifest_version": 3,
-  "name": "Reddit Resume",
+  "name": "Reddit Opinions",
   "version": "1.0",
-  "description": "Generate summaries of Reddit comment threads",
+  "description": "Analyse les opinions et les tendances dans les commentaires Reddit à l'aide de l'IA",
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },
-  "web_accessible_resources": [{
-    "resources": ["node_modules/d3/dist/*"],
-    "matches": ["<all_urls>"]
-  }],
-  "oauth2": {
-    "client_id": "274847669888-3g71rhjdrk3ivni2opnkg6so7m5b0md5.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/generative-language.tuning.readonly"
-    ]
-  },
   "permissions": [
     "activeTab",
-    "scripting",
     "storage",
+    "scripting",
     "tabs",
     "identity"
   ],
   "host_permissions": [
-    "https://*.reddit.com/*",
+    "*://*.reddit.com/*",
     "https://generativelanguage.googleapis.com/*"
   ],
   "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "images/icon16.png",
-      "48": "images/icon48.png",
-      "128": "images/icon128.png"
-    }
+    "default_popup": "popup.html"
   },
-  "icons": {
-    "16": "images/icon16.png",
-    "48": "images/icon48.png",
-    "128": "images/icon128.png"
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["*://*.reddit.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "js/utils/helpers.js",
+        "js/models/reddit-analysis.model.js",
+        "node_modules/d3/dist/*"
+      ],
+      "matches": ["*://*.reddit.com/*", "<all_urls>"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "oauth2": {
+    "client_id": "274847669888-3g71rhjdrk3ivni2opnkg6so7m5b0md5.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
   }
 }

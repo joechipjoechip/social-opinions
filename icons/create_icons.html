@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Créer des icônes</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+        .icon-container {
+            margin: 20px;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Icônes Reddit Opinions</h1>
+    
+    <div class="icon-container">
+        <h2>16x16</h2>
+        <canvas id="icon16" width="16" height="16"></canvas>
+        <p>Cliquez avec le bouton droit et "Enregistrer l'image sous..." comme icon16.png</p>
+    </div>
+    
+    <div class="icon-container">
+        <h2>48x48</h2>
+        <canvas id="icon48" width="48" height="48"></canvas>
+        <p>Cliquez avec le bouton droit et "Enregistrer l'image sous..." comme icon48.png</p>
+    </div>
+    
+    <div class="icon-container">
+        <h2>128x128</h2>
+        <canvas id="icon128" width="128" height="128"></canvas>
+        <p>Cliquez avec le bouton droit et "Enregistrer l'image sous..." comme icon128.png</p>
+    </div>
+    
+    <script>
+        function drawIcon(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Fond orange (couleur Reddit)
+            ctx.fillStyle = '#FF5700';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2 - 1, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Cercle blanc intérieur
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2 - size/10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Yeux
+            const eyeRadius = size/8;
+            ctx.fillStyle = '#FF5700';
+            
+            // Œil gauche
+            ctx.beginPath();
+            ctx.arc(size/3, size/2, eyeRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Œil droit
+            ctx.beginPath();
+            ctx.arc(size*2/3, size/2, eyeRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Sourire
+            ctx.strokeStyle = '#FF5700';
+            ctx.lineWidth = size/12;
+            ctx.beginPath();
+            ctx.arc(size/2, size/2 + size/8, size/4, 0, Math.PI);
+            ctx.stroke();
+            
+            // Pupilles
+            if (size >= 48) {
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(size/3, size/2, eyeRadius/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(size*2/3, size/2, eyeRadius/2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Lignes de texte (pour représenter les opinions)
+            if (size >= 48) {
+                ctx.strokeStyle = '#FF5700';
+                ctx.lineWidth = size/32;
+                ctx.globalAlpha = 0.3;
+                
+                const startY = size/2 + size/4;
+                const lineSpacing = size/10;
+                
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(size/4, startY + i * lineSpacing);
+                    ctx.lineTo(size*3/4, startY + i * lineSpacing);
+                    ctx.stroke();
+                }
+                
+                ctx.globalAlpha = 1.0;
+            }
+        }
+        
+        // Dessiner les icônes
+        drawIcon('icon16', 16);
+        drawIcon('icon48', 48);
+        drawIcon('icon128', 128);
+    </script>
+</body>
+</html>

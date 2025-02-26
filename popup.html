@@ -10,64 +10,94 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <button id="summarizeBtn">Analyser les commentaires</button>
-    <div id="loading" class="loading">Analyse en cours...</div>
+    <header class="app-header">
+        <h1 class="app-title">Reddit Opinions</h1>
+        <div class="action-buttons">
+            <button id="summarizeBtn" class="primary-button">Analyser les commentaires</button>
+            <button id="exportBtn" class="secondary-button" title="Exporter les résultats en JSON">Exporter</button>
+            <button id="settingsBtn" class="secondary-button" title="Configurer l'extension">⚙️</button>
+        </div>
+    </header>
+    
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Analyse en cours...</p>
+    </div>
+    
     <div id="error" class="error"></div>
 
-    <div id="opinionVisualization" class="visualization-container">
-        <div class="visualization-header">
-            <h2 class="visualization-title">Distribution des Opinions</h2>
-            <p class="visualization-description">Répartition des opinions principales et leur popularité basée sur les votes</p>
-        </div>
-        <div class="chart-wrapper">
-            <canvas id="opinionClusterChart"></canvas>
-        </div>
+    <div id="authWarning" class="warning-message" style="display: none;">
+        <p>Authentification non configurée</p>
+        <button id="configureAuth" class="primary-button">Configurer</button>
     </div>
-    <div id="consensusVisualization" class="visualization-container">
-        <div class="visualization-header">
-            <h2 class="visualization-title">Points de Consensus</h2>
-            <p class="visualization-description">Visualisation des sujets sur lesquels la communauté s'accorde</p>
-        </div>
-        <div class="chart-wrapper">
-            <canvas id="consensusChart"></canvas>
-        </div>
-    </div>
-    <div id="scoresVisualization" class="visualization-container">
-        <div class="visualization-header">
-            <h2 class="visualization-title">Points de Friction</h2>
-            <p class="visualization-description">
-                Comparaison des opinions opposées et leur support respectif. Les barres de gauche (orange) 
-                et de droite (bleue) représentent le nombre de votes pour chaque opinion contradictoire.
-            </p>
-        </div>
-        <div class="chart-wrapper">
-            <canvas id="scoresChart"></canvas>
-        </div>
-    </div>
-    <div id="controversyVisualization" class="visualization-container">
-        <div class="visualization-header">
-            <h2 class="visualization-title">Groupes d'Opinions</h2>
-            <p class="visualization-description">Vue d'ensemble des groupes d'opinions similaires et leur poids dans la discussion</p>
-        </div>
-        <div class="chart-wrapper">
-            <canvas id="controversyChart"></canvas>
+
+    <div class="popup-container">
+        <header class="popup-header">
+          <h1 class="popup-title">Reddit Opinions</h1>
+          <div class="popup-subtitle">Analyse des opinions dans les commentaires</div>
+        </header>
+        
+        <div id="content-container">
+            <div id="opinionVisualization" class="visualization-container">
+                <div class="visualization-header">
+                    <h2 class="visualization-title">Distribution des Opinions</h2>
+                    <p class="visualization-description">Répartition des opinions principales et leur popularité basée sur les votes</p>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="opinionClusterChart"></canvas>
+                </div>
+            </div>
+            <div id="consensusVisualization" class="visualization-container">
+                <div class="visualization-header">
+                    <h2 class="visualization-title">Points de Consensus</h2>
+                    <p class="visualization-description">Visualisation des sujets sur lesquels la communauté s'accorde</p>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="consensusChart"></canvas>
+                </div>
+            </div>
+            <div id="scoresVisualization" class="visualization-container">
+                <div class="visualization-header">
+                    <h2 class="visualization-title">Points de Friction</h2>
+                    <p class="visualization-description">
+                        Comparaison des opinions opposées et leur support respectif. Les barres de gauche (orange) 
+                        et de droite (bleue) représentent le nombre de votes pour chaque opinion contradictoire.
+                    </p>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="scoresChart"></canvas>
+                </div>
+            </div>
+            <div id="controversyVisualization" class="visualization-container">
+                <div class="visualization-header">
+                    <h2 class="visualization-title">Groupes d'Opinions</h2>
+                    <p class="visualization-description">Vue d'ensemble des groupes d'opinions similaires et leur poids dans la discussion</p>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="controversyChart"></canvas>
+                </div>
+            </div>
+
+            <div id="summary">
+                <div class="stat-card">
+                    <h3>Vue d'Ensemble</h3>
+                    <div id="overviewContent"></div>
+                </div>
+                <div class="stat-card">
+                    <h3>Opinions Principales</h3>
+                    <div id="topCommentsContent"></div>
+                </div>
+                <div class="stat-card">
+                    <h3>Points de Désaccord</h3>
+                    <div id="controversialContent"></div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="summary">
-        <div class="stat-card">
-            <h3>Vue d'Ensemble</h3>
-            <div id="overviewContent"></div>
-        </div>
-        <div class="stat-card">
-            <h3>Opinions Principales</h3>
-            <div id="topCommentsContent"></div>
-        </div>
-        <div class="stat-card">
-            <h3>Points de Désaccord</h3>
-            <div id="controversialContent"></div>
-        </div>
-    </div>
+    <footer class="app-footer">
+        <p>Reddit Opinions v1.0 - Analyse des opinions dans les commentaires Reddit</p>
+    </footer>
 
     <script type="module" src="js/services/gemini.service.js"></script>
     <script type="module" src="js/visualizations.js"></script>
