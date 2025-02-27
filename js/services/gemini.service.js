@@ -445,13 +445,26 @@ Format de sortie attendu:
     }
 
     /**
-     * Génère une clé de cache basée sur le contenu de la page
+     * Génère une clé de cache basée sur l'URL de la page
      * @param {Object} pageContent - Contenu de la page
      * @returns {string} - Clé de cache
      */
     _generateCacheKey(pageContent) {
-        // Utiliser uniquement le titre et les premiers commentaires pour la clé de cache
-        // afin d'augmenter les chances de réutilisation du cache
+        // Utiliser principalement l'URL pour la clé de cache
+        // Cela permettra de conserver le cache même après un rechargement de la page
+        if (pageContent.url) {
+            // Extraire l'identifiant unique du post Reddit de l'URL
+            const urlParts = pageContent.url.split('/');
+            const postId = urlParts.find(part => part.startsWith('comments'));
+            
+            if (postId) {
+                // Ajouter le titre pour plus de spécificité mais sans les commentaires
+                // qui peuvent changer lors d'un rechargement
+                return `${postId}|${pageContent.postTitle}`;
+            }
+        }
+        
+        // Fallback: utiliser l'ancienne méthode si l'URL n'est pas disponible
         const commentSample = pageContent.comments
             .slice(0, Math.min(5, pageContent.comments.length))
             .map(c => `${c.score}:${c.text.substring(0, 50)}`)
