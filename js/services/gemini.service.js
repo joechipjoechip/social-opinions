@@ -8,12 +8,26 @@ class GeminiService {
         // Clé API par défaut (pour le développement)
         this.API_KEY = 'AIzaSyDXsazw-xOdNCmP6CwXo_Rhi4yGohcrmvs';
         
+        // Indique si le cache a été initialisé
+        this.cacheInitialized = false;
+        
         // Charger le cache depuis le stockage local
         this._loadCacheFromStorage();
     }
 
     setMaxComments(limit) {
         this.MAX_COMMENTS = limit;
+    }
+
+    /**
+     * Initialise le service et charge le cache
+     * @returns {Promise<void>}
+     */
+    async initialize() {
+        if (!this.cacheInitialized) {
+            await this._loadCacheFromStorage();
+            this.cacheInitialized = true;
+        }
     }
 
     /**
@@ -159,13 +173,18 @@ class GeminiService {
      * @returns {Promise<Object>} - Données d'analyse
      */
     async generateSummary(pageContent) {
+        // S'assurer que le cache est initialisé
+        await this.initialize();
+        
         // Génération d'une clé de cache basée sur le contenu
         const cacheKey = this._generateCacheKey(pageContent);
         
         // Vérification du cache
         if (this.cache.has(cacheKey)) {
             console.log('Utilisation des données en cache');
-            return this.cache.get(cacheKey);
+            const cachedData = this.cache.get(cacheKey);
+            // Ajouter une propriété indiquant que les données proviennent du cache
+            return { ...cachedData, _fromCache: true };
         }
 
         let retries = 0;
@@ -699,6 +718,7 @@ Format de sortie attendu:
             // Convertir l'objet en Map
             this.cache = new Map(Object.entries(data));
             console.log(`Cache chargé: ${this.cache.size} entrées`);
+            this.cacheInitialized = true;
         } catch (error) {
             console.error('Erreur lors du chargement du cache:', error);
             this.cache = new Map();

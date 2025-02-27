@@ -345,7 +345,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 postTitle: content.postTitle,
                 commentCount: content.commentCount,
                 analysisVersion: '1.0',
-                quotaExceeded: analysisData._quotaExceeded || false
+                quotaExceeded: analysisData._quotaExceeded || false,
+                fromCache: analysisData._fromCache || false
             };
             
             // Afficher un avertissement si l'analyse est limitée en raison du quota dépassé
@@ -366,6 +367,26 @@ document.addEventListener('DOMContentLoaded', async function() {
                 } else {
                     // Fallback: ajouter à la fin du body
                     document.body.appendChild(warningDiv);
+                }
+            }
+            
+            // Afficher une indication si les résultats proviennent du cache
+            if (currentAnalysis.metadata.fromCache) {
+                const cacheInfoDiv = document.createElement('div');
+                cacheInfoDiv.className = 'info-message';
+                cacheInfoDiv.innerHTML = `
+                    <p><strong>ℹ️ Résultats en cache</strong> - Ces résultats proviennent du cache local.</p>
+                    <p>Pour obtenir une nouvelle analyse, cliquez sur le bouton 🗑️ pour vider le cache, puis relancez l'analyse.</p>
+                `;
+                
+                // Trouver un parent approprié pour insérer l'information
+                const contentContainer = document.getElementById('content-container');
+                if (contentContainer) {
+                    // Insérer au début du conteneur de contenu
+                    contentContainer.insertBefore(cacheInfoDiv, contentContainer.firstChild);
+                } else {
+                    // Fallback: ajouter à la fin du body
+                    document.body.appendChild(cacheInfoDiv);
                 }
             }
             
@@ -496,6 +517,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Bouton de configuration
     settingsBtn?.addEventListener('click', () => {
         chrome.runtime.openOptionsPage();
+    });
+    
+    // Bouton de vidage du cache
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    clearCacheBtn?.addEventListener('click', async () => {
+        try {
+            const geminiService = new GeminiService();
+            await geminiService.clearCache();
+            showSuccess('Le cache d\'analyses a été vidé avec succès');
+        } catch (error) {
+            console.error('Erreur lors du vidage du cache:', error);
+            showError('Erreur lors du vidage du cache: ' + error.message);
+        }
     });
     
     // Fonction d'exportation des données
