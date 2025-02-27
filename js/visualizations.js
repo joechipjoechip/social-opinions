@@ -42,6 +42,12 @@ export class Visualizations {
      */
     createOpinionClusterChart(data) {
         const ctx = document.getElementById('opinionClusterChart').getContext('2d');
+        const legendContainer = document.getElementById('opinionClusterLegend');
+        
+        // Vider le conteneur de légende s'il existe
+        if (legendContainer) {
+            legendContainer.innerHTML = '';
+        }
         
         // Destruction du graphique existant s'il existe
         if (this.charts.opinionCluster) {
@@ -56,9 +62,11 @@ export class Visualizations {
         let labels = [];
         let values = [];
         let colors = [];
+        let originalLabels = []; // Stocke les labels complets
         
         if (opinionClusters.length <= 6) {
             labels = opinionClusters.map(cluster => cluster.opinion);
+            originalLabels = [...labels]; // Copie des labels complets
             values = opinionClusters.map(cluster => cluster.totalVotes);
             colors = Object.values(this.colors).slice(0, opinionClusters.length);
         } else {
@@ -69,12 +77,14 @@ export class Visualizations {
             
             // Ajouter les 5 premiers clusters
             labels = topClusters.map(cluster => cluster.opinion);
+            originalLabels = [...labels]; // Copie des labels complets
             values = topClusters.map(cluster => cluster.totalVotes);
             colors = Object.values(this.colors).slice(0, 5);
             
             // Ajouter la catégorie "Autres"
             const otherVotes = otherClusters.reduce((sum, cluster) => sum + cluster.totalVotes, 0);
             labels.push('Autres opinions');
+            originalLabels.push('Autres opinions');
             values.push(otherVotes);
             colors.push('#999999');
         }
@@ -96,14 +106,7 @@ export class Visualizations {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'right',
-                        labels: {
-                            boxWidth: 15,
-                            padding: 15,
-                            font: {
-                                size: 12
-                            }
-                        }
+                        display: false // Désactiver la légende native de Chart.js
                     },
                     tooltip: {
                         callbacks: {
@@ -115,31 +118,42 @@ export class Visualizations {
                                 return `${label}: ${formatNumber(value)} votes (${percentage}%)`;
                             }
                         }
-                    },
-                    datalabels: {
-                        formatter: (value, ctx) => {
-                            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = Math.round((value / total) * 100);
-                            return percentage > 5 ? `${percentage}%` : '';
-                        },
-                        color: 'white',
-                        font: {
-                            weight: 'bold',
-                            size: 12
-                        }
                     }
-                },
-                cutout: '60%'
+                }
             }
         });
+        
+        // Créer une légende HTML personnalisée
+        if (legendContainer) {
+            const total = values.reduce((a, b) => a + b, 0);
+            const legendHTML = labels.map((label, index) => {
+                const percentage = Math.round((values[index] / total) * 100);
+                const originalLabel = originalLabels[index];
+                return `
+                    <div class="custom-legend-item">
+                        <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
+                        <span class="legend-text" title="${originalLabel}">${originalLabel}</span>
+                        <span class="legend-value">${percentage}%</span>
+                    </div>
+                `;
+            }).join('');
+            
+            legendContainer.innerHTML = legendHTML;
+        }
     }
     
     /**
-     * Crée un graphique en barres horizontales pour les scores
+     * Crée un graphique en barres pour les scores des différentes opinions
      * @param {RedditAnalysis} data - Données d'analyse
      */
     createScoresChart(data) {
         const ctx = document.getElementById('scoresChart').getContext('2d');
+        const legendContainer = document.getElementById('scoresChartLegend');
+        
+        // Vider le conteneur de légende s'il existe
+        if (legendContainer) {
+            legendContainer.innerHTML = '';
+        }
         
         // Destruction du graphique existant s'il existe
         if (this.charts.scores) {
@@ -147,41 +161,28 @@ export class Visualizations {
         }
         
         // Préparation des données
-        const frictionPoints = data.frictionPoints || [];
-        if (!frictionPoints.length) return;
+        const opinionClusters = data.opinionClusters || [];
+        if (!opinionClusters.length) return;
         
-        // Limiter à 5 points de friction
-        const topFrictionPoints = frictionPoints
-            .sort((a, b) => b.intensityScore - a.intensityScore)
-            .slice(0, 5);
+        // Trier par votes et prendre les 5 premiers
+        const sortedClusters = [...opinionClusters].sort((a, b) => b.totalVotes - a.totalVotes).slice(0, 5);
         
-        const labels = topFrictionPoints.map(point => point.topic);
-        const opinion1Values = topFrictionPoints.map(point => -point.opinion1.votes); // Valeurs négatives pour l'affichage à gauche
-        const opinion2Values = topFrictionPoints.map(point => point.opinion2.votes);
+        const labels = sortedClusters.map(cluster => cluster.opinion);
+        const values = sortedClusters.map(cluster => cluster.totalVotes);
+        const colors = Object.values(this.colors).slice(0, sortedClusters.length);
         
         // Création du graphique
         this.charts.scores = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [
-                    {
-                        label: 'Position 1',
-                        data: opinion1Values,
-                        backgroundColor: this.colors.secondary,
-                        borderColor: 'white',
-                        borderWidth: 1,
-                        borderRadius: 4
-                    },
-                    {
-                        label: 'Position 2',
-                        data: opinion2Values,
-                        backgroundColor: this.colors.primary,
-                        borderColor: 'white',
-                        borderWidth: 1,
-                        borderRadius: 4
-                    }
-                ]
+                datasets: [{
+                    label: 'Votes',
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: 'rgba(255, 255, 255, 0.7)',
+                    borderWidth: 1
+                }]
             },
             options: {
                 responsive: true,
@@ -189,55 +190,46 @@ export class Visualizations {
                 indexAxis: 'y',
                 plugins: {
                     legend: {
-                        position: 'top',
-                        align: 'center',
-                        labels: {
-                            boxWidth: 15,
-                            padding: 15
-                        }
+                        display: false // Désactiver la légende native
                     },
                     tooltip: {
                         callbacks: {
                             label: (context) => {
-                                const label = context.dataset.label || '';
-                                const value = Math.abs(context.raw);
-                                return `${label}: ${formatNumber(value)} votes`;
+                                return `${formatNumber(context.raw)} votes`;
                             }
-                        }
-                    },
-                    datalabels: {
-                        formatter: (value) => {
-                            return formatNumber(Math.abs(value));
-                        },
-                        color: 'white',
-                        font: {
-                            weight: 'bold',
-                            size: 11
-                        },
-                        anchor: (context) => {
-                            return context.dataset.data[context.dataIndex] < 0 ? 'end' : 'start';
-                        },
-                        align: (context) => {
-                            return context.dataset.data[context.dataIndex] < 0 ? 'end' : 'start';
                         }
                     }
                 },
                 scales: {
                     x: {
-                        stacked: false,
                         beginAtZero: true,
-                        ticks: {
-                            callback: (value) => {
-                                return formatNumber(Math.abs(value));
-                            }
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
                         }
                     },
                     y: {
-                        stacked: false
+                        grid: {
+                            display: false
+                        }
                     }
                 }
             }
         });
+        
+        // Créer une légende HTML personnalisée
+        if (legendContainer) {
+            const legendHTML = labels.map((label, index) => {
+                return `
+                    <div class="custom-legend-item">
+                        <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
+                        <span class="legend-text" title="${label}">${label}</span>
+                        <span class="legend-value">${formatNumber(values[index])} votes</span>
+                    </div>
+                `;
+            }).join('');
+            
+            legendContainer.innerHTML = legendHTML;
+        }
     }
     
     /**
@@ -246,6 +238,12 @@ export class Visualizations {
      */
     createConsensusChart(data) {
         const ctx = document.getElementById('consensusChart').getContext('2d');
+        const legendContainer = document.getElementById('consensusChartLegend');
+        
+        // Vider le conteneur de légende s'il existe
+        if (legendContainer) {
+            legendContainer.innerHTML = '';
+        }
         
         // Destruction du graphique existant s'il existe
         if (this.charts.consensus) {
@@ -291,7 +289,7 @@ export class Visualizations {
                 indexAxis: 'y',
                 plugins: {
                     legend: {
-                        display: false
+                        display: false // Désactiver la légende native
                     },
                     tooltip: {
                         callbacks: {
@@ -300,18 +298,6 @@ export class Visualizations {
                                 return `Consensus: ${Math.round(value)}%`;
                             }
                         }
-                    },
-                    datalabels: {
-                        formatter: (value) => {
-                            return `${Math.round(value)}%`;
-                        },
-                        color: 'white',
-                        font: {
-                            weight: 'bold',
-                            size: 12
-                        },
-                        anchor: 'end',
-                        align: 'end'
                     }
                 },
                 scales: {
@@ -327,6 +313,21 @@ export class Visualizations {
                 }
             }
         });
+        
+        // Créer une légende HTML personnalisée
+        if (legendContainer) {
+            const legendHTML = labels.map((label, index) => {
+                return `
+                    <div class="custom-legend-item">
+                        <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
+                        <span class="legend-text" title="${label}">${label}</span>
+                        <span class="legend-value">${Math.round(values[index])}%</span>
+                    </div>
+                `;
+            }).join('');
+            
+            legendContainer.innerHTML = legendHTML;
+        }
     }
     
     /**
@@ -335,7 +336,12 @@ export class Visualizations {
      */
     createControversyChart(data) {
         const ctx = document.getElementById('controversyChart')?.getContext('2d');
-        if (!ctx) return;
+        const legendContainer = document.getElementById('controversyChartLegend');
+        
+        // Vider le conteneur de légende s'il existe
+        if (legendContainer) {
+            legendContainer.innerHTML = '';
+        }
         
         // Destruction du graphique existant s'il existe
         if (this.charts.controversy) {
@@ -385,7 +391,7 @@ export class Visualizations {
                 },
                 plugins: {
                     legend: {
-                        display: false
+                        display: false // Désactiver la légende native
                     },
                     tooltip: {
                         callbacks: {
@@ -398,5 +404,20 @@ export class Visualizations {
                 }
             }
         });
+        
+        // Créer une légende HTML personnalisée
+        if (legendContainer) {
+            const legendHTML = labels.map((label, index) => {
+                return `
+                    <div class="custom-legend-item">
+                        <span class="legend-color-box" style="background-color: ${this.colors.secondary}"></span>
+                        <span class="legend-text" title="${label}">${label}</span>
+                        <span class="legend-value">${values[index].toFixed(1)}/10</span>
+                    </div>
+                `;
+            }).join('');
+            
+            legendContainer.innerHTML = legendHTML;
+        }
     }
 }

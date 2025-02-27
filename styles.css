@@ -222,6 +222,65 @@ button:disabled {
     height: 300px;
 }
 
+/* Styles pour les légendes personnalisées */
+.custom-legend {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.custom-legend-item {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.legend-color-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.legend-text {
+    margin-right: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.legend-value {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+/* Optimisation pour les petits écrans */
+@media (max-width: 600px) {
+    .chart-wrapper {
+        height: 250px;
+    }
+    
+    .custom-legend {
+        flex-direction: column;
+    }
+    
+    .custom-legend-item {
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+    
+    .legend-text {
+        max-width: 200px;
+    }
+}
+
 /* Stats and Cards */
 #summary {
     display: grid;
