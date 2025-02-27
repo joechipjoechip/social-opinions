@@ -211,7 +211,7 @@ export class Visualizations {
                     },
                     y: {
                         grid: {
-                            display: false
+                            display: true
                         }
                     }
                 }
@@ -267,11 +267,13 @@ export class Visualizations {
         const values = topConsensusPoints.map(point => point.agreementLevel * 100); // Convertir en pourcentage
         
         // Génération de couleurs dégradées
-        const colors = values.map((value) => {
-            // Dégradé de couleurs basé sur le niveau d'accord
-            const hue = 200 + (value / 100) * 60; // Bleu (200) à vert (120)
-            return `hsl(${hue}, 80%, 50%)`;
-        });
+        const colors = [
+            this.colors.primary,
+            this.colors.secondary,
+            this.colors.tertiary,
+            this.colors.quaternary,
+            this.colors.quinary
+        ];
         
         // Création du graphique
         this.charts.consensus = new Chart(ctx, {
@@ -313,6 +315,14 @@ export class Visualizations {
                                 return `${value}%`;
                             }
                         }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            display: false // Masquer les étiquettes sur l'axe Y
+                        }
                     }
                 }
             }
@@ -337,7 +347,7 @@ export class Visualizations {
     }
     
     /**
-     * Crée un graphique radar pour la controverse
+     * Crée un graphique à barres horizontales pour les groupes d'opinions
      * @param {RedditAnalysis} data - Données d'analyse
      */
     createControversyChart(data) {
@@ -358,40 +368,60 @@ export class Visualizations {
         const frictionPoints = data.frictionPoints || [];
         if (!frictionPoints.length) return;
         
-        // Sélectionner les 6 points de friction les plus intenses
+        // Sélectionner les 5 points de friction les plus intenses
         const topFrictionPoints = frictionPoints
             .sort((a, b) => b.intensityScore - a.intensityScore)
-            .slice(0, 6);
+            .slice(0, 5);
         
         const labels = topFrictionPoints.map(point => point.topic);
-        const values = topFrictionPoints.map(point => point.intensityScore * 10); // Échelle de 0 à 10
+        const values = topFrictionPoints.map(point => point.intensityScore * 10); // Échelle de 0 à 100
         
-        // Création du graphique
+        // Générer des couleurs pour chaque barre
+        const colors = [
+            this.colors.primary,
+            this.colors.secondary,
+            this.colors.tertiary,
+            this.colors.quaternary,
+            this.colors.quinary
+        ];
+        
+        // Création du graphique à barres horizontales
         this.charts.controversy = new Chart(ctx, {
-            type: 'radar',
+            type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Intensité de la controverse',
+                    label: 'Intensité',
                     data: values,
-                    backgroundColor: 'rgba(255, 69, 0, 0.2)',
-                    borderColor: this.colors.secondary,
-                    borderWidth: 2,
-                    pointBackgroundColor: this.colors.secondary,
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: this.colors.secondary
+                    backgroundColor: colors,
+                    borderColor: 'white',
+                    borderWidth: 1,
+                    borderRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                indexAxis: 'y', // Rend le graphique horizontal
                 scales: {
-                    r: {
+                    x: {
                         beginAtZero: true,
-                        max: 10,
+                        max: 100,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
                         ticks: {
-                            stepSize: 2
+                            callback: function(value) {
+                                return value + '/100';
+                            }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            display: false // Masquer les étiquettes sur l'axe Y
                         }
                     }
                 },
@@ -403,7 +433,7 @@ export class Visualizations {
                         callbacks: {
                             label: (context) => {
                                 const value = context.raw || 0;
-                                return `Intensité: ${value.toFixed(1)}/10`;
+                                return `Intensité: ${(value/10).toFixed(1)}/10`;
                             }
                         }
                     }
@@ -416,9 +446,9 @@ export class Visualizations {
             const legendHTML = labels.map((label, index) => {
                 return `
                     <div class="custom-legend-item">
-                    <div class="custom-legend-item-head">
-                        <span class="legend-color-box" style="background-color: ${this.colors.secondary}"></span>
-                        <span class="legend-value">${values[index].toFixed(1)}/10</span>
+                        <div class="custom-legend-item-head">
+                            <span class="legend-color-box" style="background-color: ${colors[index % colors.length]}"></span>
+                            <span class="legend-value">${(values[index]/10).toFixed(1)}/10</span>
                         </div>
                         <span class="legend-text" title="${label}">${label}</span>
                     </div>

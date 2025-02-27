@@ -44,27 +44,32 @@ const TEST_DATA = {
         {
             topic: "Importance de la formation continue",
             consensusPercentage: 87,
-            totalMentions: 342
+            totalMentions: 342,
+            agreementLevel: 0.87
         },
         {
             topic: "Nécessité d'acquérir de nouvelles compétences",
             consensusPercentage: 82,
-            totalMentions: 278
+            totalMentions: 278,
+            agreementLevel: 0.82
         },
         {
             topic: "Valeur de l'expérience pratique",
             consensusPercentage: 76,
-            totalMentions: 203
+            totalMentions: 203,
+            agreementLevel: 0.76
         },
         {
             topic: "Importance du réseau professionnel",
             consensusPercentage: 71,
-            totalMentions: 187
+            totalMentions: 187,
+            agreementLevel: 0.71
         },
         {
             topic: "Adaptation aux nouvelles technologies",
             consensusPercentage: 68,
-            totalMentions: 154
+            totalMentions: 154,
+            agreementLevel: 0.68
         }
     ],
     frictionPoints: [
