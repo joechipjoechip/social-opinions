@@ -20,12 +20,17 @@ function displayOverview(data) {
         return;
     }
     
+    // Calculer le niveau de consensus si non défini
+    const consensusLevel = data.overview.consensusLevel || 
+                          (data.controversyScore ? (100 - data.controversyScore) / 100 : 0.5);
+    
     overviewContent.innerHTML = `
         <div class="stat-value">${formatNumber(data.overview.totalComments)}</div>
         <p>commentaires analysés</p>
         <p><strong>Opinion dominante :</strong> ${data.overview.mainOpinion}</p>
-        <p><strong>Niveau de consensus :</strong> ${Math.round(data.overview.consensusLevel * 100)}%</p>
-        <p><strong>Subreddit :</strong> ${data.metadata?.postTitle ? data.metadata.postTitle.substring(0, 30) + '...' : 'N/A'}</p>
+        <p><strong>Niveau de consensus :</strong> ${Math.round(consensusLevel * 100)}%</p>
+        ${data.metadata?.postTitle ? 
+            `<p><strong>Subreddit :</strong> ${truncateText(data.metadata.postTitle, 30)}</p>` : ''}
     `;
 }
 
@@ -36,25 +41,41 @@ function displayOverview(data) {
 function displayTopComments(data) {
     const topCommentsContent = document.getElementById('topCommentsContent');
     
-    if (!data || !data.opinionClusters || data.opinionClusters.length === 0) {
+    if (!data || (!data.opinionClusters || data.opinionClusters.length === 0) && (!data.topComments || data.topComments.length === 0)) {
         topCommentsContent.innerHTML = '<p class="error">Aucun commentaire disponible</p>';
         return;
     }
     
-    const topOpinions = data.opinionClusters
-        .sort((a, b) => b.totalVotes - a.totalVotes)
-        .slice(0, 3);
-
-    topCommentsContent.innerHTML = topOpinions.map(opinion => `
-        <div class="stat-card">
-            <p><strong>${opinion.opinion}</strong></p>
-            <p>${truncateText(opinion.representativeComment, 120)}</p>
-            <div class="comment-stats">
-                <span>Votes: <strong>${formatNumber(opinion.totalVotes)}</strong></span>
-                <span>Commentaires: <strong>${formatNumber(opinion.commentCount)}</strong></span>
+    // Utiliser les topComments s'ils existent, sinon utiliser les opinionClusters
+    if (data.topComments && data.topComments.length > 0) {
+        const comments = data.topComments.slice(0, 3);
+        
+        topCommentsContent.innerHTML = comments.map(comment => `
+            <div class="comment-card">
+                <p class="comment-text">${truncateText(comment.text, 120)}</p>
+                <div class="comment-meta">
+                    <span class="votes">${formatNumber(comment.votes)} votes</span>
+                    <span class="sentiment ${comment.sentiment > 0 ? 'positive' : comment.sentiment < 0 ? 'negative' : 'neutral'}">
+                        ${comment.sentiment > 0.3 ? '😊' : comment.sentiment < -0.3 ? '😠' : '😐'}
+                    </span>
+                </div>
             </div>
-        </div>
-    `).join('');
+        `).join('');
+    } else {
+        const topOpinions = data.opinionClusters
+            .sort((a, b) => b.totalVotes - a.totalVotes)
+            .slice(0, 3);
+
+        topCommentsContent.innerHTML = topOpinions.map(opinion => `
+            <div class="stat-card">
+                <p><strong>${opinion.opinion}</strong></p>
+                <p>${truncateText(opinion.representativeComment, 120)}</p>
+                <div class="opinion-meta">
+                    <span class="votes">${formatNumber(opinion.totalVotes)} votes</span>
+                </div>
+            </div>
+        `).join('');
+    }
 }
 
 /**
@@ -69,24 +90,42 @@ function displayControversialPoints(data) {
         return;
     }
     
-    controversialContent.innerHTML = data.frictionPoints.map(point => `
-        <div class="controversy-item">
-            <div class="controversy-header">
-                <strong>${point.topic}</strong>
-                <span class="intensity">Intensité: ${Math.round(point.intensityScore * 10)}/10</span>
-            </div>
-            <div class="controversy-positions">
-                <div class="position position-1">
-                    <strong>Position 1 (${formatNumber(point.opinion1.votes)} votes):</strong>
-                    <p>${point.opinion1.stance}</p>
+    // Trier par intensité et prendre les 3 premiers
+    const topFrictionPoints = data.frictionPoints
+        .sort((a, b) => b.intensityScore - a.intensityScore)
+        .slice(0, 3);
+    
+    controversialContent.innerHTML = topFrictionPoints.map(point => {
+        // Vérifier si le point a la structure attendue
+        const hasOpinions = point.opinion1 && point.opinion2;
+        
+        if (hasOpinions) {
+            return `
+                <div class="friction-point">
+                    <p class="friction-topic"><strong>${point.topic}</strong> (Intensité: ${point.intensityScore.toFixed(1)}/10)</p>
+                    <div class="friction-opinions">
+                        <div class="opinion">
+                            <span class="opinion-text">${point.opinion1.text || point.opinion1.stance}</span>
+                            <span class="opinion-votes">${formatNumber(point.opinion1.votes)} votes</span>
+                        </div>
+                        <div class="opinion-divider">vs</div>
+                        <div class="opinion">
+                            <span class="opinion-text">${point.opinion2.text || point.opinion2.stance}</span>
+                            <span class="opinion-votes">${formatNumber(point.opinion2.votes)} votes</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="position position-2">
-                    <strong>Position 2 (${formatNumber(point.opinion2.votes)} votes):</strong>
-                    <p>${point.opinion2.stance}</p>
+            `;
+        } else {
+            // Format alternatif si la structure est différente
+            return `
+                <div class="friction-point">
+                    <p class="friction-topic"><strong>${point.topic}</strong> (Intensité: ${point.intensityScore.toFixed(1)}/10)</p>
+                    <p class="friction-description">Point de désaccord majeur dans la discussion</p>
                 </div>
-            </div>
-        </div>
-    `).join('');
+            `;
+        }
+    }).join('');
 }
 
 /**
@@ -299,6 +338,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const authWarning = document.getElementById('authWarning');
                 if (authWarning) {
                     authWarning.style.display = 'block';
+                    
                     let message = `<p>${authStatus.message}</p>`;
                     
                     // Afficher un message différent selon la méthode d'authentification
@@ -309,6 +349,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     message += `<button id="configureAuth" class="primary-button">Configurer</button>`;
                     authWarning.innerHTML = message;
                     
+                    // Initialiser le bouton de configuration
                     initAuthentication();
                 }
                 return;
@@ -513,6 +554,48 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Attacher les écouteurs d'événements
     summarizeBtn.addEventListener('click', debouncedAnalyze);
+    
+    // Gestion du bouton "Test Dev UI"
+    const testDevUIBtn = document.getElementById('testDevUIBtn');
+    if (testDevUIBtn) {
+        testDevUIBtn.addEventListener('click', () => {
+            // Utiliser les données de test définies dans test-data.js
+            if (typeof TEST_DATA !== 'undefined') {
+                // Masquer le chargement et les erreurs
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'none';
+                
+                // Créer une instance de RedditAnalysis avec les données de test
+                const testAnalysis = new RedditAnalysis(TEST_DATA);
+                currentAnalysis = testAnalysis;
+                
+                // Afficher les visualisations
+                visualizationContainers.forEach(container => {
+                    container.style.display = 'block';
+                });
+                document.getElementById('summary').style.display = 'grid';
+                
+                // Afficher les données dans l'interface
+                displayOverview(testAnalysis);
+                displayTopComments(testAnalysis);
+                displayControversialPoints(testAnalysis);
+                
+                // Créer les visualisations
+                visualizations.createOpinionClusterChart(testAnalysis);
+                visualizations.createScoresChart(testAnalysis);
+                visualizations.createConsensusChart(testAnalysis);
+                visualizations.createControversyChart(testAnalysis);
+                
+                // Activer le bouton d'exportation
+                exportBtn.disabled = false;
+                
+                console.log('Données de test chargées avec succès');
+            } else {
+                console.error('Données de test non disponibles');
+                showError('Erreur: Les données de test ne sont pas disponibles.');
+            }
+        });
+    }
     
     // Bouton de configuration
     settingsBtn?.addEventListener('click', () => {

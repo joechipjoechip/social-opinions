@@ -9,6 +9,9 @@ export class RedditAnalysis {
         this.consensusPoints = (data.consensusPoints || []).map(p => new ConsensusPoint(p));
         this.frictionPoints = (data.frictionPoints || []).map(p => new FrictionPoint(p));
         this.voteDistribution = (data.voteDistribution || []).map(d => new VoteDistribution(d));
+        this.controversyScore = data.controversyScore || 0;
+        this.topComments = (data.topComments || []).map(c => new TopComment(c));
+        this.sentimentDistribution = data.sentimentDistribution || { positive: 0, neutral: 0, negative: 0 };
         this.metadata = new Metadata(data.metadata || {});
     }
 
@@ -56,6 +59,9 @@ export class RedditAnalysis {
             consensusPoints: this.consensusPoints,
             frictionPoints: this.frictionPoints,
             voteDistribution: this.voteDistribution,
+            controversyScore: this.controversyScore,
+            topComments: this.topComments,
+            sentimentDistribution: this.sentimentDistribution,
             metadata: this.metadata
         };
     }
@@ -121,6 +127,14 @@ export class VoteDistribution {
         this.totalVotes = data.totalVotes || 0;
         this.percentageOfTotal = data.percentageOfTotal || 0;
         this.topComments = data.topComments || [];
+    }
+}
+
+export class TopComment {
+    constructor(data = {}) {
+        this.text = data.text || '';
+        this.votes = data.votes || 0;
+        this.sentiment = data.sentiment || 0;
     }
 }
 

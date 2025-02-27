@@ -233,12 +233,17 @@ button:disabled {
 
 .custom-legend-item {
     display: flex;
-    align-items: center;
-    margin-right: 15px;
-    margin-bottom: 8px;
+    margin-right: 5px;
+    margin-bottom: 15px;
     font-size: 14px;
-    white-space: nowrap;
-    max-width: 100%;
+    
+    display: flex;
+    flex-flow: column nowrap;
+}
+.custom-legend-item-head {
+    display: flex
+    flex-flow: row nowrap;
+    align-items: center;
 }
 
 .legend-color-box {
@@ -246,14 +251,12 @@ button:disabled {
     height: 12px;
     border-radius: 2px;
     margin-right: 6px;
-    flex-shrink: 0;
+    display: inline-block;
 }
 
 .legend-text {
     margin-right: 5px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 150px;
+    white-space: normal;
 }
 
 .legend-value {
@@ -271,22 +274,14 @@ button:disabled {
         flex-direction: column;
     }
     
-    .custom-legend-item {
-        margin-right: 0;
-        margin-bottom: 5px;
-    }
-    
-    .legend-text {
-        max-width: 200px;
-    }
 }
 
 /* Stats and Cards */
 #summary {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
 }
 
 .stat-card {
@@ -294,28 +289,58 @@ button:disabled {
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
     padding: var(--spacing-md);
-    height: 100%;
-}
-
-.stat-card h3 {
-    color: var(--primary-color);
     margin-bottom: var(--spacing-md);
-    padding-bottom: var(--spacing-xs);
-    border-bottom: 1px solid var(--border-color);
 }
 
 .stat-value {
-    font-size: 32px;
+    font-size: 2rem;
     font-weight: bold;
     color: var(--primary-color);
     margin-bottom: var(--spacing-xs);
 }
 
-.comment-stats {
+/* Styles pour les cartes de commentaires */
+.comment-card {
+    background-color: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border-left: 4px solid var(--primary-color);
+}
+
+.comment-text {
+    font-size: 0.95rem;
+    line-height: 1.4;
+    margin-bottom: var(--spacing-sm);
+}
+
+.comment-meta, .opinion-meta {
     display: flex;
     justify-content: space-between;
-    margin-top: var(--spacing-sm);
-    font-size: 14px;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.votes {
+    font-weight: bold;
+}
+
+.sentiment {
+    display: inline-flex;
+    align-items: center;
+}
+
+.sentiment.positive {
+    color: var(--success-color);
+}
+
+.sentiment.negative {
+    color: var(--error-color);
+}
+
+.sentiment.neutral {
     color: var(--text-secondary);
 }
 
@@ -715,4 +740,58 @@ button:disabled {
     display: none;
     text-align: center;
     max-width: 80%;
+}
+
+/* Styles pour les points de friction */
+.friction-point {
+    background-color: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border-left: 4px solid var(--secondary-color);
+}
+
+.friction-topic {
+    margin-bottom: var(--spacing-sm);
+    font-size: 1rem;
+}
+
+.friction-opinions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.opinion {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-xs);
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: var(--border-radius-sm);
+}
+
+.opinion-text {
+    font-size: 0.9rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.opinion-votes {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.opinion-divider {
+    font-weight: bold;
+    color: var(--text-secondary);
+    padding: 0 var(--spacing-xs);
+}
+
+.friction-description {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-style: italic;
 }

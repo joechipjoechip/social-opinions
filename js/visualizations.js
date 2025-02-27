@@ -131,9 +131,11 @@ export class Visualizations {
                 const originalLabel = originalLabels[index];
                 return `
                     <div class="custom-legend-item">
+                    <div class="custom-legend-item-head">
                         <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
-                        <span class="legend-text" title="${originalLabel}">${originalLabel}</span>
                         <span class="legend-value">${percentage}%</span>
+                        </div>
+                        <span class="legend-text" title="${originalLabel}">${originalLabel}</span>
                     </div>
                 `;
             }).join('');
@@ -221,9 +223,11 @@ export class Visualizations {
             const legendHTML = labels.map((label, index) => {
                 return `
                     <div class="custom-legend-item">
+                    <div class="custom-legend-item-head">
                         <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
-                        <span class="legend-text" title="${label}">${label}</span>
                         <span class="legend-value">${formatNumber(values[index])} votes</span>
+                        </div>
+                        <span class="legend-text" title="${label}">${label}</span>
                     </div>
                 `;
             }).join('');
@@ -319,9 +323,11 @@ export class Visualizations {
             const legendHTML = labels.map((label, index) => {
                 return `
                     <div class="custom-legend-item">
+                    <div class="custom-legend-item-head">
                         <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
-                        <span class="legend-text" title="${label}">${label}</span>
                         <span class="legend-value">${Math.round(values[index])}%</span>
+                        </div>
+                        <span class="legend-text" title="${label}">${label}</span>
                     </div>
                 `;
             }).join('');
@@ -410,9 +416,11 @@ export class Visualizations {
             const legendHTML = labels.map((label, index) => {
                 return `
                     <div class="custom-legend-item">
+                    <div class="custom-legend-item-head">
                         <span class="legend-color-box" style="background-color: ${this.colors.secondary}"></span>
-                        <span class="legend-text" title="${label}">${label}</span>
                         <span class="legend-value">${values[index].toFixed(1)}/10</span>
+                        </div>
+                        <span class="legend-text" title="${label}">${label}</span>
                     </div>
                 `;
             }).join('');
