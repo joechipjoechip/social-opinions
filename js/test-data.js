@@ -75,62 +75,72 @@ const TEST_DATA = {
     frictionPoints: [
         {
             topic: "Âge et reconversion professionnelle",
-            intensityScore: 8.7,
+            intensityScore: 0.87,
             opinion1: {
-                text: "La reconversion est possible à tout âge",
-                votes: 245
+                stance: "La reconversion est possible à tout âge",
+                votes: 245,
+                keyArguments: ["L'expérience est un atout", "Les compétences sont transférables"]
             },
             opinion2: {
-                text: "Après 40 ans, la reconversion est très difficile",
-                votes: 198
+                stance: "Reconversion difficile après 40 ans",
+                votes: 198,
+                keyArguments: ["Préjugés des recruteurs", "Difficulté d'adaptation"]
             }
         },
         {
             topic: "Formations en ligne vs présentielles",
-            intensityScore: 7.9,
+            intensityScore: 0.79,
             opinion1: {
-                text: "Les formations en ligne sont suffisantes",
-                votes: 176
+                stance: "Pour les formations en ligne",
+                votes: 176,
+                keyArguments: ["Flexibilité horaire", "Coût réduit"]
             },
             opinion2: {
-                text: "Les formations présentielles sont indispensables",
-                votes: 203
+                stance: "Contre les formations en ligne",
+                votes: 203,
+                keyArguments: ["Manque d'encadrement", "Motivation difficile à maintenir"]
             }
         },
         {
             topic: "Rôle de l'État dans la reconversion",
-            intensityScore: 7.5,
+            intensityScore: 0.75,
             opinion1: {
-                text: "L'État devrait financer davantage les reconversions",
-                votes: 187
+                stance: "Pour le financement public",
+                votes: 187,
+                keyArguments: ["Bénéfice collectif", "Réduction des inégalités"]
             },
             opinion2: {
-                text: "La reconversion est une responsabilité individuelle",
-                votes: 165
+                stance: "Pour la responsabilité individuelle",
+                votes: 165,
+                keyArguments: ["Meilleure motivation", "Allocation efficace des ressources"]
             }
         },
         {
             topic: "Valeur des diplômes vs compétences",
-            intensityScore: 6.8,
+            intensityScore: 0.68,
             opinion1: {
-                text: "Les compétences pratiques sont plus importantes que les diplômes",
-                votes: 234
+                stance: "Pour les compétences pratiques",
+                votes: 234,
+                keyArguments: ["Adaptabilité au marché", "Résultats concrets"]
             },
             opinion2: {
-                text: "Les diplômes restent essentiels pour la crédibilité",
-                votes: 143
+                stance: "Pour l'importance des diplômes",
+                votes: 143,
+                keyArguments: ["Crédibilité professionnelle", "Fondements théoriques solides"]
             }
         },
         {
             topic: "Durée idéale d'une reconversion",
-            intensityScore: 5.4,
+            intensityScore: 0.54,
             opinion1: {
-                text: "Une reconversion rapide (< 1 an) est préférable",
-                votes: 156
+                stance: "Pour une reconversion rapide (<1 an)",
+                votes: 156,
+                keyArguments: ["Retour rapide à l'emploi", "Moins de perte financière"]
             },
             opinion2: {
-                text: "Une reconversion de qualité prend plusieurs années",
-                votes: 178
+                stance: "Pour une formation longue et approfondie",
+                votes: 178,
+                keyArguments: ["Meilleure maîtrise", "Compétences plus solides"]
             }
         }
     ],

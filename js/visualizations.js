@@ -366,7 +366,7 @@ export class Visualizations {
         // Préparer les données pour un graphique à barres horizontales opposées
         const labels = topFrictionPoints.map(point => point.topic);
         const opinion1Values = topFrictionPoints.map(point => point.opinion1.votes);
-        const opinion2Values = topFrictionPoints.map(point => -point.opinion2.votes); // Valeurs négatives pour l'affichage opposé
+        const opinion2Values = topFrictionPoints.map(point => point.opinion2.votes); // Valeurs positives pour les votes
         
         // Stocker les stances pour l'affichage dans les légendes
         const opinion1Stances = topFrictionPoints.map(point => point.opinion1.stance);
@@ -389,7 +389,7 @@ export class Visualizations {
                     },
                     {
                         label: 'Opinion 2',
-                        data: opinion2Values,
+                        data: opinion2Values.map(value => -value), // Valeurs négatives pour l'affichage opposé
                         backgroundColor: this.colors.secondary, // Bleu
                         borderColor: 'white',
                         borderWidth: 1,
@@ -464,7 +464,7 @@ export class Visualizations {
         if (legendContainer) {
             const legendHTML = labels.map((label, index) => {
                 const opinion1Value = opinion1Values[index];
-                const opinion2Value = Math.abs(opinion2Values[index]);
+                const opinion2Value = opinion2Values[index];
                 const totalVotes = opinion1Value + opinion2Value;
                 const opinion1Percent = Math.round((opinion1Value / totalVotes) * 100);
                 const opinion2Percent = Math.round((opinion2Value / totalVotes) * 100);

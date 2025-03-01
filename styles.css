@@ -289,9 +289,10 @@ button:disabled {
 
 /* Styles pour les légendes personnalisées */
 .custom-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+
     margin-top: 16px;
     justify-content: center;
 }
@@ -300,8 +301,8 @@ button:disabled {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    min-width: 120px;
-    max-width: 200px;
+    /* min-width: 120px;
+    max-width: 200px; */
     background-color: #f9fafb;
     border-radius: 8px;
     padding: 10px;
@@ -331,10 +332,6 @@ button:disabled {
 .legend-text {
     font-size: 13px;
     color: #4B5563;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 180px;
 }
 
 /* Titre de la section légende */
@@ -357,7 +354,7 @@ button:disabled {
 
 .diverging-legend-item {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 6px;
 }
 
@@ -366,18 +363,11 @@ button:disabled {
     font-size: 14px;
     color: #1F2937;
     margin-bottom: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 180px;
 }
 
 .legend-text-small {
     font-size: 12px;
     color: #4B5563;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     flex: 1;
 }
 
