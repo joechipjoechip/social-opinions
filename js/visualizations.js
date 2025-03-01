@@ -142,17 +142,22 @@ export class Visualizations {
                 const percentage = Math.round((values[index] / total) * 100);
                 const originalLabel = originalLabels[index];
                 return `
-                    <div class="custom-legend-item">
-                    <div class="custom-legend-item-head">
-                        <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
-                        <span class="legend-value">${percentage}%</span>
+                    <div class="custom-legend-item" data-index="${index}">
+                        <div class="legend-item-container">
+                            <div class="custom-legend-item-head">
+                                <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
+                                <span class="legend-value">${percentage}%</span>
+                            </div>
+                            <span class="legend-text" title="${originalLabel}">${originalLabel}</span>
                         </div>
-                        <span class="legend-text" title="${originalLabel}">${originalLabel}</span>
                     </div>
                 `;
             }).join('');
             
             legendContainer.innerHTML = legendHTML;
+            
+            // Ajouter les interactions pour la légende
+            this.addLegendInteractions(legendContainer, this.charts.opinionCluster);
         }
     }
     
@@ -227,17 +232,22 @@ export class Visualizations {
             const legendHTML = labels.map((label, index) => {
                 const percentage = Math.round((values[index] / total) * 100);
                 return `
-                    <div class="custom-legend-item">
-                    <div class="custom-legend-item-head">
-                        <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
-                        <span class="legend-value">${percentage}%</span>
+                    <div class="custom-legend-item" data-index="${index}">
+                        <div class="legend-item-container">
+                            <div class="custom-legend-item-head">
+                                <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
+                                <span class="legend-value">${percentage}%</span>
+                            </div>
+                            <span class="legend-text" title="${label}">${label}</span>
                         </div>
-                        <span class="legend-text" title="${label}">${label}</span>
                     </div>
                 `;
             }).join('');
             
             legendContainer.innerHTML = legendHTML;
+            
+            // Ajouter les interactions pour la légende
+            this.addLegendInteractions(legendContainer, this.charts.scores);
         }
     }
     
@@ -322,17 +332,22 @@ export class Visualizations {
             const legendHTML = labels.map((label, index) => {
                 const percentage = Math.round((values[index] / total) * 100);
                 return `
-                    <div class="custom-legend-item">
-                    <div class="custom-legend-item-head">
-                        <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
-                        <span class="legend-value">${percentage}%</span>
+                    <div class="custom-legend-item" data-index="${index}">
+                        <div class="legend-item-container">
+                            <div class="custom-legend-item-head">
+                                <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
+                                <span class="legend-value">${percentage}%</span>
+                            </div>
+                            <span class="legend-text" title="${label}">${label}</span>
                         </div>
-                        <span class="legend-text" title="${label}">${label}</span>
                     </div>
                 `;
             }).join('');
             
             legendContainer.innerHTML = legendHTML;
+            
+            // Ajouter les interactions pour la légende
+            this.addLegendInteractions(legendContainer, this.charts.consensus);
         }
     }
     
@@ -612,17 +627,171 @@ export class Visualizations {
             const legendHTML = topClusters.map((cluster, index) => {
                 const percentage = Math.round((cluster.totalVotes / totalVotes) * 100);
                 return `
-                    <div class="custom-legend-item">
-                        <div class="custom-legend-item-head">
-                            <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
-                            <span class="legend-value">${percentage}%</span>
+                    <div class="custom-legend-item" data-index="${index}">
+                        <div class="legend-item-container">
+                            <div class="custom-legend-item-head">
+                                <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
+                                <span class="legend-value">${percentage}%</span>
+                            </div>
+                            <span class="legend-text" title="${cluster.opinion}">${cluster.opinion}</span>
                         </div>
-                        <span class="legend-text" title="${cluster.opinion}">${cluster.opinion}</span>
                     </div>
                 `;
             }).join('');
             
             legendContainer.innerHTML = legendHTML;
+            
+            // Ajouter les interactions pour la légende du graphique en barres
+            this.addBarLegendInteractions(legendContainer, this.charts.opinionGroups, colors);
         }
+    }
+    
+    addLegendInteractions(legendContainer, chart) {
+        const legendItems = legendContainer.querySelectorAll('.custom-legend-item');
+        
+        legendItems.forEach((item) => {
+            // Utiliser tout l'élément pour le survol
+            const handleMouseOver = () => {
+                const itemIndex = parseInt(item.getAttribute('data-index'));
+                
+                // Mettre en évidence l'élément survolé dans le graphique
+                const meta = chart.getDatasetMeta(0);
+                
+                // Pour les graphiques de type doughnut et pie
+                if (chart.config.type === 'doughnut' || chart.config.type === 'pie') {
+                    meta.data.forEach((dataItem, index) => {
+                        // Mettre en évidence l'élément survolé
+                        if (index === itemIndex) {
+                            dataItem.outerRadius = dataItem.outerRadius * 1.08;
+                        } else {
+                            // Atténuer les autres éléments
+                            const originalColor = chart.data.datasets[0].backgroundColor[index];
+                            meta.data[index].options = {
+                                ...meta.data[index].options,
+                                backgroundColor: this.addTransparency(originalColor, 0.5)
+                            };
+                        }
+                    });
+                }
+                
+                // Mettre à jour les styles de la légende
+                legendItems.forEach((legendItem, idx) => {
+                    if (idx === itemIndex) {
+                        legendItem.classList.add('highlight');
+                    } else {
+                        legendItem.classList.add('dimmed');
+                    }
+                });
+                
+                chart.update();
+            };
+            
+            const handleMouseOut = () => {
+                const itemIndex = parseInt(item.getAttribute('data-index'));
+                
+                // Restaurer l'apparence normale du graphique
+                const meta = chart.getDatasetMeta(0);
+                
+                // Pour les graphiques de type doughnut et pie
+                if (chart.config.type === 'doughnut' || chart.config.type === 'pie') {
+                    meta.data.forEach((dataItem, index) => {
+                        // Restaurer le rayon d'origine
+                        if (index === itemIndex) {
+                            dataItem.outerRadius = dataItem.outerRadius / 1.08;
+                        }
+                        
+                        // Restaurer la couleur d'origine
+                        const originalColor = chart.data.datasets[0].backgroundColor[index];
+                        meta.data[index].options = {
+                            ...meta.data[index].options,
+                            backgroundColor: originalColor
+                        };
+                    });
+                }
+                
+                // Restaurer les styles de la légende
+                legendItems.forEach(legendItem => {
+                    legendItem.classList.remove('highlight');
+                    legendItem.classList.remove('dimmed');
+                });
+                
+                chart.update();
+            };
+            
+            // Ajouter les événements à l'élément principal
+            item.addEventListener('mouseover', handleMouseOver);
+            item.addEventListener('mouseout', handleMouseOut);
+        });
+    }
+    
+    // Méthode spécifique pour les interactions avec les légendes des graphiques en barres
+    addBarLegendInteractions(legendContainer, chart, colors) {
+        const legendItems = legendContainer.querySelectorAll('.custom-legend-item');
+        
+        legendItems.forEach((item) => {
+            // Utiliser tout l'élément pour le survol
+            const handleMouseOver = () => {
+                const itemIndex = parseInt(item.getAttribute('data-index'));
+                
+                // Mettre en évidence la barre survolée dans le graphique
+                const dataset = chart.data.datasets[0];
+                const originalColors = [...dataset.backgroundColor];
+                
+                // Créer un nouvel array de couleurs avec transparence pour toutes les barres sauf celle survolée
+                const newColors = originalColors.map((color, idx) => {
+                    return idx === itemIndex ? color : this.addTransparency(color, 0.3);
+                });
+                
+                // Appliquer les nouvelles couleurs
+                dataset.backgroundColor = newColors;
+                
+                // Mettre à jour les styles de la légende
+                legendItems.forEach((legendItem, idx) => {
+                    if (idx === itemIndex) {
+                        legendItem.classList.add('highlight');
+                    } else {
+                        legendItem.classList.add('dimmed');
+                    }
+                });
+                
+                chart.update();
+            };
+            
+            const handleMouseOut = () => {
+                // Restaurer les couleurs d'origine
+                const dataset = chart.data.datasets[0];
+                dataset.backgroundColor = colors.slice(0, dataset.data.length);
+                
+                // Restaurer les styles de la légende
+                legendItems.forEach(legendItem => {
+                    legendItem.classList.remove('highlight');
+                    legendItem.classList.remove('dimmed');
+                });
+                
+                chart.update();
+            };
+            
+            // Ajouter les événements à l'élément principal
+            item.addEventListener('mouseover', handleMouseOver);
+            item.addEventListener('mouseout', handleMouseOut);
+        });
+    }
+    
+    // Utilitaire pour ajouter de la transparence à une couleur
+    addTransparency(color, alpha) {
+        if (color.startsWith('#')) {
+            // Convertir hexadécimal en RGB
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        } else if (color.startsWith('rgb')) {
+            // Convertir rgb en rgba
+            return color.replace('rgb', 'rgba').replace(')', `, ${alpha})`);
+        } else if (color.startsWith('rgba')) {
+            // Modifier la valeur alpha existante
+            return color.replace(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d\.]+\)/, `rgba($1, $2, $3, ${alpha})`);
+        }
+        return color;
     }
 }
