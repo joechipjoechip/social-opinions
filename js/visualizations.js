@@ -10,7 +10,8 @@ export class Visualizations {
             opinionCluster: null,
             scores: null,
             consensus: null,
-            controversy: null
+            controversy: null,
+            opinionGroups: null
         };
         
         // Configuration des couleurs NuxtUI
@@ -49,7 +50,7 @@ export class Visualizations {
      * @param {RedditAnalysis} data - Données d'analyse
      */
     createOpinionClusterChart(data) {
-        const ctx = document.getElementById('opinionClusterChart').getContext('2d');
+        const ctx = document.getElementById('opinionDistributionChart').getContext('2d');
         const legendContainer = document.getElementById('opinionClusterLegend');
         
         // Vider le conteneur de légende s'il existe
@@ -484,6 +485,119 @@ export class Visualizations {
                                 <span class="legend-text-small" title="${opinion2Stances[index]}">${opinion2Stances[index]}</span>
                             </div>
                         </div>
+                    </div>
+                `;
+            }).join('');
+            
+            legendContainer.innerHTML = legendHTML;
+        }
+    }
+    
+    /**
+     * Crée un graphique en barres pour les groupes d'opinions
+     * @param {RedditAnalysis} data - Données d'analyse
+     */
+    createOpinionGroupsChart(data) {
+        const ctx = document.getElementById('opinionClusterChart').getContext('2d');
+        const legendContainer = document.getElementById('opinionClusterLegend');
+        
+        // Vider le conteneur de légende s'il existe
+        if (legendContainer) {
+            legendContainer.innerHTML = '';
+        }
+        
+        // Destruction du graphique existant s'il existe
+        if (this.charts.opinionGroups) {
+            this.charts.opinionGroups.destroy();
+        }
+        
+        // Préparation des données
+        const opinionClusters = data.opinionClusters || [];
+        if (!opinionClusters.length) return;
+        
+        // Limiter à 8 opinions maximum pour le graphique en barres
+        let labels = [];
+        let values = [];
+        
+        // Trier par votes et prendre les 8 premiers
+        const sortedClusters = [...opinionClusters].sort((a, b) => b.totalVotes - a.totalVotes);
+        const topClusters = sortedClusters.slice(0, 8);
+        
+        // Extraire les données
+        labels = topClusters.map(cluster => cluster.opinion);
+        values = topClusters.map(cluster => cluster.totalVotes);
+        
+        // Création du graphique en barres
+        this.charts.opinionGroups = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Votes',
+                    data: values,
+                    backgroundColor: this.colors.primary,
+                    borderColor: 'white',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    maxBarThickness: 30
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Votes: ${context.formattedValue}`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: true,
+                        color: '#1F2937',
+                        anchor: 'end',
+                        align: 'end',
+                        formatter: (value) => {
+                            return value.toLocaleString();
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value) {
+                                // Tronquer les textes trop longs
+                                const label = this.getLabelForValue(value);
+                                if (label.length > 25) {
+                                    return label.substring(0, 22) + '...';
+                                }
+                                return label;
+                            }
+                        }
+                    },
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Créer une légende HTML personnalisée si nécessaire
+        if (legendContainer) {
+            const legendHTML = topClusters.map((cluster, index) => {
+                return `
+                    <div class="custom-legend-item">
+                        <div class="legend-color-box" style="background-color: ${this.colors.primary}"></div>
+                        <div class="legend-text" title="${cluster.opinion}">${cluster.opinion}</div>
+                        <div class="legend-value">${cluster.totalVotes.toLocaleString()} votes</div>
                     </div>
                 `;
             }).join('');
