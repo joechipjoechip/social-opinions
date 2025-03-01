@@ -13,27 +13,35 @@ export class Visualizations {
             controversy: null
         };
         
-        // Configuration des couleurs
+        // Configuration des couleurs NuxtUI
         this.colors = {
-            primary: '#0079d3',
-            secondary: '#ff4500',
-            tertiary: '#46d160',
-            quaternary: '#ffb000',
-            quinary: '#7193ff',
-            senary: '#ff66ac'
+            primary: '#00DC82',    // Vert NuxtUI
+            secondary: '#3B82F6',  // Bleu
+            tertiary: '#10B981',   // Vert secondaire
+            quaternary: '#F59E0B', // Orange
+            quinary: '#8B5CF6',    // Violet
+            senary: '#EC4899'      // Rose
         };
         
         // Configuration globale de Chart.js
-        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
-        Chart.defaults.color = '#666666';
-        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-        Chart.defaults.plugins.tooltip.titleColor = '#333333';
-        Chart.defaults.plugins.tooltip.bodyColor = '#333333';
-        Chart.defaults.plugins.tooltip.borderColor = '#e6e6e6';
+        Chart.defaults.font.family = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+        Chart.defaults.color = '#6B7280'; // Gris moyen NuxtUI
+        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+        Chart.defaults.plugins.tooltip.titleColor = '#1F2937'; // Gris foncé NuxtUI
+        Chart.defaults.plugins.tooltip.bodyColor = '#1F2937';
+        Chart.defaults.plugins.tooltip.borderColor = '#E5E7EB'; // Couleur de bordure NuxtUI
         Chart.defaults.plugins.tooltip.borderWidth = 1;
         Chart.defaults.plugins.tooltip.cornerRadius = 8;
         Chart.defaults.plugins.tooltip.displayColors = true;
         Chart.defaults.plugins.tooltip.boxPadding = 6;
+        Chart.defaults.plugins.tooltip.padding = 10;
+        Chart.defaults.plugins.tooltip.titleFont = {
+            weight: '600',
+            size: 14
+        };
+        Chart.defaults.plugins.tooltip.bodyFont = {
+            size: 13
+        };
     }
     
     /**
@@ -86,7 +94,7 @@ export class Visualizations {
             labels.push('Autres opinions');
             originalLabels.push('Autres opinions');
             values.push(otherVotes);
-            colors.push('#999999');
+            colors.push('#94A3B8'); // Gris slate NuxtUI
         }
         
         // Création du graphique
@@ -98,12 +106,15 @@ export class Visualizations {
                     data: values,
                     backgroundColor: colors,
                     borderColor: 'white',
-                    borderWidth: 2
+                    borderWidth: 2,
+                    borderRadius: 4,
+                    hoverOffset: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '70%',
                 plugins: {
                     legend: {
                         display: false // Désactiver la légende native de Chart.js
@@ -183,7 +194,9 @@ export class Visualizations {
                     data: values,
                     backgroundColor: colors,
                     borderColor: 'rgba(255, 255, 255, 0.7)',
-                    borderWidth: 1
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    maxBarThickness: 30
                 }]
             },
             options: {
@@ -206,12 +219,25 @@ export class Visualizations {
                     x: {
                         beginAtZero: true,
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(0, 0, 0, 0.03)'
+                        },
+                        border: {
+                            display: false
                         }
                     },
                     y: {
                         grid: {
-                            display: true
+                            display: false
+                        },
+                        border: {
+                            display: false
+                        },
+                        ticks: {
+                            padding: 10,
+                            color: '#1F2937',
+                            font: {
+                                size: 12
+                            }
                         }
                     }
                 }
@@ -286,7 +312,8 @@ export class Visualizations {
                     backgroundColor: colors,
                     borderColor: 'white',
                     borderWidth: 1,
-                    borderRadius: 4
+                    borderRadius: 6,
+                    maxBarThickness: 30
                 }]
             },
             options: {
@@ -310,18 +337,32 @@ export class Visualizations {
                     x: {
                         beginAtZero: true,
                         max: 100,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.03)'
+                        },
+                        border: {
+                            display: false
+                        },
                         ticks: {
                             callback: (value) => {
                                 return `${value}%`;
-                            }
+                            },
+                            color: '#6B7280'
                         }
                     },
                     y: {
                         grid: {
                             display: false
                         },
+                        border: {
+                            display: false
+                        },
                         ticks: {
-                            display: false // Masquer les étiquettes sur l'axe Y
+                            padding: 10,
+                            color: '#1F2937',
+                            font: {
+                                size: 12
+                            }
                         }
                     }
                 }
@@ -396,7 +437,8 @@ export class Visualizations {
                     backgroundColor: colors,
                     borderColor: 'white',
                     borderWidth: 1,
-                    borderRadius: 4
+                    borderRadius: 6,
+                    maxBarThickness: 30
                 }]
             },
             options: {
@@ -408,20 +450,31 @@ export class Visualizations {
                         beginAtZero: true,
                         max: 100,
                         grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(0, 0, 0, 0.03)'
+                        },
+                        border: {
+                            display: false
                         },
                         ticks: {
                             callback: function(value) {
                                 return value + '/100';
-                            }
+                            },
+                            color: '#6B7280'
                         }
                     },
                     y: {
                         grid: {
                             display: false
                         },
+                        border: {
+                            display: false
+                        },
                         ticks: {
-                            display: false // Masquer les étiquettes sur l'axe Y
+                            padding: 10,
+                            color: '#1F2937',
+                            font: {
+                                size: 12
+                            }
                         }
                     }
                 },
