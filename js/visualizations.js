@@ -527,6 +527,21 @@ export class Visualizations {
         labels = topClusters.map(cluster => cluster.opinion);
         values = topClusters.map(cluster => cluster.totalVotes);
         
+        // Calculer le total des votes pour les pourcentages
+        const totalVotes = values.reduce((sum, value) => sum + value, 0);
+        
+        // Générer un tableau de couleurs pour chaque barre
+        const colors = [
+            this.colors.primary,    // Vert
+            this.colors.secondary,  // Bleu
+            this.colors.tertiary,   // Vert secondaire
+            this.colors.quaternary, // Orange
+            this.colors.quinary,    // Violet
+            this.colors.senary,     // Rose
+            '#14B8A6',              // Teal
+            '#6366F1'               // Indigo
+        ];
+        
         // Création du graphique en barres
         this.charts.opinionGroups = new Chart(ctx, {
             type: 'bar',
@@ -535,7 +550,7 @@ export class Visualizations {
                 datasets: [{
                     label: 'Votes',
                     data: values,
-                    backgroundColor: this.colors.primary,
+                    backgroundColor: colors.slice(0, topClusters.length),
                     borderColor: 'white',
                     borderWidth: 1,
                     borderRadius: 6,
@@ -553,7 +568,9 @@ export class Visualizations {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return `Votes: ${context.formattedValue}`;
+                                const value = context.raw;
+                                const percentage = Math.round((value / totalVotes) * 100);
+                                return `Votes: ${value.toLocaleString()} (${percentage}%)`;
                             }
                         }
                     },
@@ -590,14 +607,17 @@ export class Visualizations {
             }
         });
         
-        // Créer une légende HTML personnalisée si nécessaire
+        // Créer une légende HTML personnalisée dans le style de celle du consensus
         if (legendContainer) {
             const legendHTML = topClusters.map((cluster, index) => {
+                const percentage = Math.round((cluster.totalVotes / totalVotes) * 100);
                 return `
                     <div class="custom-legend-item">
-                        <div class="legend-color-box" style="background-color: ${this.colors.primary}"></div>
-                        <div class="legend-text" title="${cluster.opinion}">${cluster.opinion}</div>
-                        <div class="legend-value">${cluster.totalVotes.toLocaleString()} votes</div>
+                        <div class="custom-legend-item-head">
+                            <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
+                            <span class="legend-value">${percentage}%</span>
+                        </div>
+                        <span class="legend-text" title="${cluster.opinion}">${cluster.opinion}</span>
                     </div>
                 `;
             }).join('');
