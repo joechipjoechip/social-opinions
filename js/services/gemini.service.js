@@ -43,7 +43,11 @@ class GeminiService {
                     
                     // Si l'erreur est liée à l'ID client, suggérer de basculer vers la clé API
                     if (error.message.includes('bad client id')) {
-                        console.warn('ID client OAuth2 invalide. Considérez utiliser l\'authentification par clé API.');
+                        console.warn('ID client OAuth2 invalide. Vérifiez la configuration dans le manifest.json.');
+                    } else if (error.message.includes('Authorization page could not be loaded')) {
+                        console.warn('Page d\'autorisation non chargée. Vérifiez votre connexion internet.');
+                    } else if (error.message.includes('The user did not approve access')) {
+                        console.warn('L\'utilisateur a refusé l\'accès.');
                     }
                     
                     reject(error);
@@ -55,6 +59,7 @@ class GeminiService {
                     return;
                 }
                 
+                console.log('Token OAuth2 obtenu avec succès');
                 resolve(token);
             });
         });
@@ -224,9 +229,9 @@ class GeminiService {
                         // Si l'OAuth2 échoue et qu'une clé API est disponible, on l'utilise
                         if (authSettings.apiKey) {
                             console.log('Utilisation de la clé API comme fallback');
-                            apiUrl = `${this.API_URL.split('?')[0]}?key=${authSettings.apiKey}`;
+                            apiUrl = `${this.API_URL}?key=${authSettings.apiKey}`;
                         } else {
-                            throw new Error('Authentification échouée. Veuillez configurer une clé API Gemini dans les paramètres de l\'extension.');
+                            throw new Error('Authentification OAuth2 échouée. Veuillez réessayer ou configurer une clé API Gemini dans les paramètres de l\'extension comme solution de secours.');
                         }
                     }
                 } else {
@@ -235,7 +240,7 @@ class GeminiService {
                         throw new Error('Clé API non configurée. Veuillez configurer une clé API Gemini dans les paramètres de l\'extension.');
                     }
                     
-                    apiUrl = `${this.API_URL.split('?')[0]}?key=${authSettings.apiKey}`;
+                    apiUrl = `${this.API_URL}?key=${authSettings.apiKey}`;
                     console.log('Utilisation de l\'authentification par clé API');
                 }
                 
@@ -770,4 +775,20 @@ Format de sortie attendu:
     }
 }
 
+// Rendre la classe disponible à la fois pour les modules ES6 et les Service Workers
+if (typeof module !== 'undefined' && module.exports) {
+    // CommonJS/Node.js
+    module.exports = GeminiService;
+} else if (typeof exports !== 'undefined') {
+    // CommonJS
+    exports.GeminiService = GeminiService;
+} else if (typeof define === 'function' && define.amd) {
+    // AMD
+    define([], function() { return GeminiService; });
+} else if (typeof self !== 'undefined') {
+    // Service Worker / Window global
+    self.GeminiService = GeminiService;
+}
+
+// Pour les modules ES6
 export default GeminiService;

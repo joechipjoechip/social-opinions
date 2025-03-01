@@ -138,8 +138,8 @@
           </select>
           <p class="option-description">Choisissez comment vous authentifier auprès de l'API Gemini</p>
           <div class="help-box">
-            <p><strong>Clé API</strong> : Méthode recommandée. Obtenez une clé API sur <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a> et collez-la ci-dessous.</p>
-            <p><strong>OAuth2</strong> : Actuellement en maintenance. Cette méthode nécessite une configuration supplémentaire dans la console Google Cloud.</p>
+            <p><strong>Clé API</strong> : Méthode simple. Obtenez une clé API sur <a href="https://ai.google.dev/" target="_blank">Google AI Studio</a> et collez-la ci-dessous.</p>
+            <p><strong>OAuth2</strong> : Méthode recommandée pour plus de sécurité. Utilise l'authentification Google pour accéder à l'API Gemini.</p>
           </div>
         </div>
       </div>
@@ -155,6 +155,7 @@
         <div class="option-input">
           <input type="text" id="clientId" value="274847669888-3g71rhjdrk3ivni2opnkg6so7m5b0md5.apps.googleusercontent.com" disabled>
           <p class="option-description">ID client configuré dans le manifest.json de l'extension</p>
+          <button id="testOAuthBtn" class="action-button">Tester l'authentification OAuth2</button>
         </div>
       </div>
     </div>

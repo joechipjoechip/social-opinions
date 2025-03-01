@@ -1,3 +1,5 @@
+// Importation des services et des utilitaires
+// Note: GeminiService est également disponible globalement pour les Service Workers
 import GeminiService from './js/services/gemini.service.js';
 import { Visualizations } from './js/visualizations.js';
 import { RedditAnalysis } from './js/models/reddit-analysis.model.js';
@@ -374,7 +376,35 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             // Générer l'analyse
-            const analysisData = await geminiService.generateSummary(content);
+            let analysisData;
+            try {
+                // Utiliser le Service Worker pour générer l'analyse
+                analysisData = await new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage(
+                        { 
+                            action: 'generateSummary', 
+                            pageContent: content,
+                            forceRefresh: false
+                        }, 
+                        (response) => {
+                            if (chrome.runtime.lastError) {
+                                console.error('Erreur:', chrome.runtime.lastError);
+                                reject(new Error(chrome.runtime.lastError.message));
+                                return;
+                            }
+                            
+                            if (response && response.success) {
+                                resolve(response.data);
+                            } else {
+                                reject(new Error(response?.message || 'Échec de la génération du résumé'));
+                            }
+                        }
+                    );
+                });
+            } catch (error) {
+                console.error('Erreur lors de la génération du résumé:', error);
+                throw new Error(`Erreur lors de l'analyse: ${error.message}`);
+            }
             
             // Créer une instance du modèle RedditAnalysis
             currentAnalysis = new RedditAnalysis(analysisData);
@@ -606,8 +636,22 @@ document.addEventListener('DOMContentLoaded', async function() {
     const clearCacheBtn = document.getElementById('clearCacheBtn');
     clearCacheBtn?.addEventListener('click', async () => {
         try {
-            const geminiService = new GeminiService();
-            await geminiService.clearCache();
+            // Utiliser le Service Worker pour vider le cache
+            await new Promise((resolve, reject) => {
+                chrome.runtime.sendMessage({ action: 'clearCache' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        reject(new Error(chrome.runtime.lastError.message));
+                        return;
+                    }
+                    
+                    if (response && response.success) {
+                        resolve();
+                    } else {
+                        reject(new Error(response?.message || 'Échec du vidage du cache'));
+                    }
+                });
+            });
+            
             showSuccess('Le cache d\'analyses a été vidé avec succès');
         } catch (error) {
             console.error('Erreur lors du vidage du cache:', error);

@@ -16,6 +16,7 @@ const analysisHistoryContainer = document.getElementById('analysisHistory');
 const authMethodSelect = document.getElementById('authMethod');
 const apiKeyRow = document.getElementById('apiKeyRow');
 const oauth2Row = document.getElementById('oauth2Row');
+const testOAuthButton = document.getElementById('testOAuthBtn');
 
 // Valeurs par défaut
 const defaultSettings = {
@@ -36,6 +37,7 @@ saveButton.addEventListener('click', saveSettings);
 resetButton.addEventListener('click', resetSettings);
 clearCacheButton.addEventListener('click', clearCache);
 authMethodSelect.addEventListener('change', toggleAuthMethod);
+testOAuthButton.addEventListener('click', testOAuth);
 
 /**
  * Charge les paramètres depuis le stockage local
@@ -143,26 +145,20 @@ function resetSettings() {
  * Efface le cache des analyses
  */
 function clearCache() {
-  // Importer le service Gemini
-  import('./js/services/gemini.service.js')
-    .then(module => {
-      const GeminiService = module.default;
-      const geminiService = new GeminiService();
-      
-      // Effacer le cache
-      geminiService.clearCache()
-        .then(() => {
-          showStatus('Cache effacé avec succès', 'success');
-        })
-        .catch(error => {
-          console.error('Erreur lors du nettoyage du cache:', error);
-          showStatus('Erreur lors du nettoyage du cache', 'error');
-        });
-    })
-    .catch(error => {
-      console.error('Erreur lors du chargement du service Gemini:', error);
-      showStatus('Erreur lors du chargement du service', 'error');
-    });
+  // Utiliser le service Gemini via une méthode compatible avec les navigateurs
+  chrome.runtime.sendMessage({ action: 'clearCache' }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('Erreur:', chrome.runtime.lastError);
+      showStatus('Erreur lors du nettoyage du cache: ' + chrome.runtime.lastError.message, 'error');
+      return;
+    }
+    
+    if (response && response.success) {
+      showStatus('Cache effacé avec succès', 'success');
+    } else {
+      showStatus('Erreur lors du nettoyage du cache: ' + (response?.message || 'Erreur inconnue'), 'error');
+    }
+  });
 }
 
 /**
@@ -325,4 +321,26 @@ function applyTheme(theme) {
   } else {
     document.body.classList.remove('dark-theme');
   }
+}
+
+/**
+ * Teste l'authentification OAuth2
+ */
+function testOAuth() {
+  showStatus('Test de l\'authentification OAuth2...', 'info');
+  
+  chrome.runtime.sendMessage({ action: 'testOAuth' }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('Erreur:', chrome.runtime.lastError);
+      showStatus('Erreur lors du test OAuth2: ' + chrome.runtime.lastError.message, 'error');
+      return;
+    }
+    
+    if (response && response.success) {
+      showStatus(response.message, 'success');
+      console.log('Token partiel:', response.token);
+    } else {
+      showStatus(response.message || 'Échec du test OAuth2', 'error');
+    }
+  });
 }
