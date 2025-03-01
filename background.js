@@ -101,19 +101,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Écouter les changements dans les paramètres
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && changes.maxComments) {
-    console.log(`Limite de commentaires modifiée: ${changes.maxComments.oldValue} -> ${changes.maxComments.newValue}`);
-    
-    // Mettre à jour la limite dans le service Gemini
-    if (geminiService) {
-      geminiService.setMaxComments(parseInt(changes.maxComments.newValue));
-      console.log(`MAX_COMMENTS mis à jour dans le service: ${geminiService.MAX_COMMENTS}`);
-    }
-  }
-});
-
 // Événement d'installation de l'extension
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Extension installée ou mise à jour:', details.reason);

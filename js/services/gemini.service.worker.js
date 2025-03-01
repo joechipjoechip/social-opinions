@@ -23,15 +23,8 @@ self.GeminiService = class GeminiService {
         this._loadCacheFromStorage();
     }
 
-    /**
-     * Définit la limite maximale de commentaires
-     * @param {number} limit - Nouvelle limite
-     */
     setMaxComments(limit) {
-        if (typeof limit === 'number' && limit > 0) {
-            this.MAX_COMMENTS = limit;
-            console.log(`Limite de commentaires définie à ${limit}`);
-        }
+        this.MAX_COMMENTS = limit;
     }
 
     /**
@@ -100,38 +93,20 @@ self.GeminiService = class GeminiService {
 
     /**
      * Charge le cache depuis le stockage local
-     * @returns {Promise<void>}
+     * @private
      */
     async _loadCacheFromStorage() {
         try {
-            const data = await new Promise((resolve) => {
-                chrome.storage.local.get('analysisCache', (result) => {
-                    resolve(result.analysisCache || {});
+            const data = await new Promise(resolve => {
+                chrome.storage.local.get('analysisCache', data => {
+                    resolve(data.analysisCache || {});
                 });
             });
             
             // Convertir l'objet en Map
-            this.cache = new Map();
-            Object.keys(data).forEach(key => {
-                // Assurez-vous que le nombre de commentaires est correct
-                if (data[key] && data[key].overview) {
-                    // Stocker le nombre de commentaires original
-                    const originalCommentCount = data[key].overview.totalComments;
-                    
-                    // Mettre à jour avec la limite actuelle
-                    chrome.storage.local.get(['maxComments'], (settings) => {
-                        const maxComments = parseInt(settings.maxComments || this.MAX_COMMENTS);
-                        if (originalCommentCount > maxComments) {
-                            data[key].overview.totalComments = maxComments;
-                            console.log(`Ajustement du nombre de commentaires en cache de ${originalCommentCount} à ${maxComments}`);
-                        }
-                    });
-                }
-                
-                this.cache.set(key, data[key]);
-            });
-            
+            this.cache = new Map(Object.entries(data));
             console.log(`Cache chargé: ${this.cache.size} entrées`);
+            this.cacheInitialized = true;
         } catch (error) {
             console.error('Erreur lors du chargement du cache:', error);
             this.cache = new Map();
@@ -140,14 +115,14 @@ self.GeminiService = class GeminiService {
     
     /**
      * Sauvegarde le cache dans le stockage local
-     * @returns {Promise<void>}
+     * @private
      */
     async _saveCacheToStorage() {
         try {
             // Convertir la Map en objet pour le stockage
             const cacheObject = Object.fromEntries(this.cache.entries());
             
-            await new Promise((resolve) => {
+            await new Promise(resolve => {
                 chrome.storage.local.set({ analysisCache: cacheObject }, () => {
                     resolve();
                 });
@@ -172,10 +147,9 @@ self.GeminiService = class GeminiService {
     /**
      * Parse la réponse JSON de l'API Gemini avec une gestion d'erreurs améliorée
      * @param {string} text - Réponse textuelle de l'API
-     * @param {Object} pageContent - Contenu de la page
      * @returns {Object} - Données structurées
      */
-    parseGeminiResponse(text, pageContent) {
+    parseGeminiResponse(text) {
         try {
             console.log('Texte reçu de l\'API:', text.substring(0, 100) + '...');
             
@@ -196,7 +170,7 @@ self.GeminiService = class GeminiService {
             // Création d'une structure de données propre avec des valeurs par défaut
             return {
                 overview: {
-                    totalComments: pageContent.comments.length, // Utiliser le nombre réel de commentaires analysés
+                    totalComments: this._safeNumber(data.overview?.totalComments),
                     mainOpinion: this._safeString(data.overview?.mainOpinion),
                     consensusLevel: this._safeNumber(data.overview?.consensusLevel, 0, 1)
                 },
@@ -273,28 +247,10 @@ self.GeminiService = class GeminiService {
             throw new Error('Aucun commentaire à analyser');
         }
         
-        // Récupérer la limite de commentaires depuis les paramètres
-        let commentLimit = this.MAX_COMMENTS;
-        try {
-            const settings = await new Promise(resolve => {
-                chrome.storage.local.get(['maxComments'], (data) => {
-                    resolve(data);
-                });
-            });
-            
-            if (settings && settings.maxComments) {
-                commentLimit = parseInt(settings.maxComments);
-                console.log(`Limite de commentaires définie dans les paramètres: ${commentLimit}`);
-            }
-        } catch (error) {
-            console.warn('Erreur lors de la récupération des paramètres:', error);
-            // Continuer avec la valeur par défaut
-        }
-        
         // Limiter le nombre de commentaires pour éviter les problèmes de taille
-        if (pageContent.comments.length > commentLimit) {
-            console.log(`Limitation du nombre de commentaires à ${commentLimit}`);
-            pageContent.comments = pageContent.comments.slice(0, commentLimit);
+        if (pageContent.comments.length > this.MAX_COMMENTS) {
+            console.log(`Limitation du nombre de commentaires à ${this.MAX_COMMENTS}`);
+            pageContent.comments = pageContent.comments.slice(0, this.MAX_COMMENTS);
         }
         
         // Générer une clé de cache basée sur le contenu
@@ -376,7 +332,7 @@ self.GeminiService = class GeminiService {
                                 Format de sortie attendu:
                                 {
                                   "overview": {
-                                    "totalComments": <nombre de commentaires analysés>,
+                                    "totalComments": <nombre>,
                                     "mainOpinion": "<opinion principale>",
                                     "consensusLevel": <0-1>
                                   },
@@ -507,7 +463,7 @@ self.GeminiService = class GeminiService {
                 }
 
                 // Parser la réponse JSON
-                const result = this.parseGeminiResponse(text, pageContent);
+                const result = this.parseGeminiResponse(text);
                 
                 // Mise en cache du résultat
                 this.cache.set(cacheKey, result);
