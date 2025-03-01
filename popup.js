@@ -297,7 +297,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     const exportBtn = document.getElementById('exportBtn');
     const settingsBtn = document.getElementById('settingsBtn');
     
-    // Sélectionner le premier conteneur de visualisation pour le masquer initialement
+    // Désactiver le bouton d'exportation jusqu'à ce qu'une analyse soit disponible
+    if (exportBtn) {
+        exportBtn.disabled = true;
+    }
+    
+    // Masquer les sections de résumé au chargement initial
+    const summarySection = document.getElementById('summary');
+    if (summarySection) {
+        summarySection.style.display = 'none';
+    }
+    
+    // Masquer les visualisations au chargement initial
     const visualizationContainers = document.querySelectorAll('.visualization-container');
     if (visualizationContainers.length > 0) {
         visualizationContainers.forEach(container => {
@@ -480,6 +491,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 container.style.display = 'block';
             });
             
+            // Afficher la section de résumé
+            if (summarySection) {
+                summarySection.style.display = 'grid';
+            }
+            
         } catch (error) {
             console.error('Erreur lors de l\'analyse:', error);
             
@@ -604,7 +620,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 visualizationContainers.forEach(container => {
                     container.style.display = 'block';
                 });
-                document.getElementById('summary').style.display = 'grid';
+                if (summarySection) {
+                    summarySection.style.display = 'grid';
+                }
                 
                 // Afficher les données dans l'interface
                 displayOverview(testAnalysis);
