@@ -46,41 +46,6 @@ self.GeminiService = class GeminiService {
     }
 
     /**
-     * Récupère le token d'accès OAuth2
-     * @returns {Promise<string>} - Token d'accès
-     */
-    async getAccessToken() {
-        return new Promise((resolve, reject) => {
-            chrome.identity.getAuthToken({ interactive: true }, function(token) {
-                if (chrome.runtime.lastError) {
-                    const error = chrome.runtime.lastError;
-                    console.error('Erreur OAuth2:', error.message);
-                    
-                    // Si l'erreur est liée à l'ID client, suggérer de basculer vers la clé API
-                    if (error.message.includes('bad client id')) {
-                        console.warn('ID client OAuth2 invalide. Vérifiez la configuration dans le manifest.json.');
-                    } else if (error.message.includes('Authorization page could not be loaded')) {
-                        console.warn('Page d\'autorisation non chargée. Vérifiez votre connexion internet.');
-                    } else if (error.message.includes('The user did not approve access')) {
-                        console.warn('L\'utilisateur a refusé l\'accès.');
-                    }
-                    
-                    reject(error);
-                    return;
-                }
-                
-                if (!token) {
-                    reject(new Error('Token OAuth2 non obtenu'));
-                    return;
-                }
-                
-                console.log('Token OAuth2 obtenu avec succès');
-                resolve(token);
-            });
-        });
-    }
-
-    /**
      * Récupère la clé API depuis le stockage local ou utilise la clé par défaut
      * @returns {Promise<string>} - Clé API
      */
@@ -264,10 +229,9 @@ self.GeminiService = class GeminiService {
     /**
      * Génère un résumé des commentaires Reddit en utilisant l'API Gemini
      * @param {Object} pageContent - Contenu de la page Reddit
-     * @param {Object} authSettings - Paramètres d'authentification
      * @returns {Promise<Object>} - Résumé généré
      */
-    async generateSummary(pageContent, authSettings = {}) {
+    async generateSummary(pageContent) {
         // Vérifier si les commentaires sont vides
         if (!pageContent.comments || pageContent.comments.length === 0) {
             throw new Error('Aucun commentaire à analyser');
@@ -319,39 +283,10 @@ self.GeminiService = class GeminiService {
                 // Préparer l'URL et les en-têtes pour l'API
                 let apiUrl = useFallbackModel ? this.FALLBACK_API_URL : this.API_URL;
                 let authHeader = {};
-                let useApiKey = false;
                 
-                // Essayer d'abord d'utiliser la clé API par défaut ou configurée
-                const apiKey = authSettings.apiKey || this.API_KEY;
-                if (apiKey) {
-                    // Utiliser la clé API directement dans l'URL
-                    apiUrl = `${this.API_URL}?key=${encodeURIComponent(apiKey)}`;
-                    useApiKey = true;
-                    // Log masqué de la clé API pour le débogage
-                    const maskedKey = apiKey.substring(0, 6) + '...' + apiKey.substring(apiKey.length - 4);
-                    console.log(`Utilisation de l'authentification par clé API: ${maskedKey}`);
-                    console.log(`URL complète: ${this.API_URL}?key=API_KEY_MASQUEE`);
-                }
-                // Si la méthode configurée est OAuth2 et qu'on n'a pas forcé l'utilisation de la clé API
-                else if (authSettings.method === 'oauth2') {
-                    try {
-                        const token = await this.getAccessToken();
-                        if (token) {
-                            authHeader = {
-                                'Authorization': `Bearer ${token}`
-                            };
-                            console.log('Utilisation d\'OAuth2 pour l\'authentification');
-                        } else {
-                            throw new Error('Token OAuth2 non disponible');
-                        }
-                    } catch (authError) {
-                        console.warn('Échec de l\'authentification OAuth2:', authError);
-                        throw new Error('Aucune méthode d\'authentification disponible');
-                    }
-                } else {
-                    throw new Error('Aucune méthode d\'authentification disponible');
-                }
-
+                // Utiliser la clé API directement dans l'URL
+                apiUrl = `${this.API_URL}?key=${encodeURIComponent(this.API_KEY)}`;
+                
                 // Appel à l'API Gemini
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -464,34 +399,6 @@ self.GeminiService = class GeminiService {
                                     errorMessage.includes('rate limit') || 
                                     response.status === 429;
                     
-                    // Vérifier si l'erreur est liée à l'authentification
-                    if (errorMessage.includes('authentication') || 
-                        errorMessage.includes('API key') || 
-                        errorMessage.includes('auth') || 
-                        response.status === 401 || 
-                        response.status === 403) {
-                        throw new Error(`Erreur d'authentification API: ${errorMessage}`);
-                    }
-                    
-                    // Vérifier si l'erreur est liée au modèle
-                    if (errorMessage.includes('model') || errorMessage.includes('not found')) {
-                        console.error('Erreur de modèle détectée, tentative de liste des modèles disponibles...');
-                        try {
-                            await this.listAvailableModels(authSettings);
-                        } catch (modelListError) {
-                            console.error('Impossible de lister les modèles:', modelListError);
-                        }
-                        
-                        if (!useFallbackModel) {
-                            console.log('Passage au modèle de secours pour la prochaine tentative');
-                            useFallbackModel = true;
-                            // Ne pas incrémenter retries pour permettre une nouvelle tentative avec le modèle de secours
-                            continue;
-                        }
-                        
-                        throw new Error(`Erreur de modèle API: ${errorMessage}. Essayez de mettre à jour l'extension ou contactez le support.`);
-                    }
-                    
                     throw new Error(`Erreur API: ${errorMessage}`);
                 }
 
@@ -577,44 +484,15 @@ self.GeminiService = class GeminiService {
 
     /**
      * Liste les modèles disponibles pour l'API Gemini
-     * @param {Object} authSettings - Paramètres d'authentification
      * @returns {Promise<Array>} - Liste des modèles disponibles
      */
-    async listAvailableModels(authSettings = {}) {
+    async listAvailableModels() {
         try {
-            // Essayer d'abord d'utiliser la clé API par défaut ou configurée
-            const apiKey = authSettings.apiKey || this.API_KEY;
-            let apiUrl = 'https://generativelanguage.googleapis.com/v1/models';
-            let authHeader = {};
-            
-            if (apiKey) {
-                apiUrl = `${apiUrl}?key=${encodeURIComponent(apiKey)}`;
-                console.log('Utilisation de la clé API pour lister les modèles');
-            } else if (authSettings.method === 'oauth2') {
-                try {
-                    const token = await this.getAccessToken();
-                    if (token) {
-                        authHeader = {
-                            'Authorization': `Bearer ${token}`
-                        };
-                        console.log('Utilisation d\'OAuth2 pour lister les modèles');
-                    } else {
-                        throw new Error('Token OAuth2 non disponible');
-                    }
-                } catch (authError) {
-                    console.warn('Échec de l\'authentification OAuth2:', authError);
-                    throw new Error('Aucune méthode d\'authentification disponible');
-                }
-            } else {
-                throw new Error('Aucune méthode d\'authentification disponible');
-            }
-            
             // Appel à l'API pour lister les modèles
-            const response = await fetch(apiUrl, {
+            const response = await fetch('https://generativelanguage.googleapis.com/v1/models', {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
-                    ...authHeader
+                    'Content-Type': 'application/json'
                 }
             });
             

@@ -31,41 +31,6 @@ class GeminiService {
     }
 
     /**
-     * Récupère le token d'accès OAuth2
-     * @returns {Promise<string>} - Token d'accès
-     */
-    async getAccessToken() {
-        return new Promise((resolve, reject) => {
-            chrome.identity.getAuthToken({ interactive: true }, function(token) {
-                if (chrome.runtime.lastError) {
-                    const error = chrome.runtime.lastError;
-                    console.error('Erreur OAuth2:', error.message);
-                    
-                    // Si l'erreur est liée à l'ID client, suggérer de basculer vers la clé API
-                    if (error.message.includes('bad client id')) {
-                        console.warn('ID client OAuth2 invalide. Vérifiez la configuration dans le manifest.json.');
-                    } else if (error.message.includes('Authorization page could not be loaded')) {
-                        console.warn('Page d\'autorisation non chargée. Vérifiez votre connexion internet.');
-                    } else if (error.message.includes('The user did not approve access')) {
-                        console.warn('L\'utilisateur a refusé l\'accès.');
-                    }
-                    
-                    reject(error);
-                    return;
-                }
-                
-                if (!token) {
-                    reject(new Error('Token OAuth2 non obtenu'));
-                    return;
-                }
-                
-                console.log('Token OAuth2 obtenu avec succès');
-                resolve(token);
-            });
-        });
-    }
-
-    /**
      * Récupère la clé API depuis le stockage local ou utilise la clé par défaut
      * @returns {Promise<string>} - Clé API
      */
@@ -198,57 +163,16 @@ class GeminiService {
 
         while (retries < this.MAX_RETRIES && !quotaExceeded) {
             try {
-                // Récupérer la méthode d'authentification configurée
-                const authSettings = await new Promise(resolve => {
-                    chrome.storage.local.get(['authMethod', 'apiKey'], (data) => {
-                        resolve({
-                            method: data.authMethod || 'apiKey',
-                            apiKey: data.apiKey || ''
-                        });
-                    });
-                });
+                // Récupérer la clé API
+                const apiKey = await this.getApiKey();
                 
                 // Préparer les en-têtes d'authentification
-                let authHeader = {};
-                let apiUrl = this.API_URL;
-                
-                if (authSettings.method === 'oauth2') {
-                    try {
-                        const token = await this.getAccessToken();
-                        if (token) {
-                            authHeader = {
-                                'Authorization': `Bearer ${token}`
-                            };
-                            console.log('Utilisation de l\'authentification OAuth2');
-                        } else {
-                            throw new Error('Token OAuth2 non disponible');
-                        }
-                    } catch (authError) {
-                        console.warn('Échec de l\'authentification OAuth2:', authError);
-                        
-                        // Si l'OAuth2 échoue et qu'une clé API est disponible, on l'utilise
-                        if (authSettings.apiKey) {
-                            console.log('Utilisation de la clé API comme fallback');
-                            apiUrl = `${this.API_URL}?key=${authSettings.apiKey}`;
-                        } else {
-                            throw new Error('Authentification OAuth2 échouée. Veuillez réessayer ou configurer une clé API Gemini dans les paramètres de l\'extension comme solution de secours.');
-                        }
-                    }
-                } else {
-                    // Méthode API Key
-                    if (!authSettings.apiKey) {
-                        throw new Error('Clé API non configurée. Veuillez configurer une clé API Gemini dans les paramètres de l\'extension.');
-                    }
-                    
-                    apiUrl = `${this.API_URL}?key=${authSettings.apiKey}`;
-                    console.log('Utilisation de l\'authentification par clé API');
-                }
+                const apiUrl = `${this.API_URL}?key=${apiKey}`;
                 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        ...authHeader
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         "contents": [{
