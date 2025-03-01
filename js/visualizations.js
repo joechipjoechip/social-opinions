@@ -51,7 +51,7 @@ export class Visualizations {
      */
     createOpinionClusterChart(data) {
         const ctx = document.getElementById('opinionDistributionChart').getContext('2d');
-        const legendContainer = document.getElementById('opinionClusterLegend');
+        const legendContainer = document.getElementById('opinionDistributionLegend');
         
         // Vider le conteneur de légende s'il existe
         if (legendContainer) {
