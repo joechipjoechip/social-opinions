@@ -64,23 +64,20 @@
                 </div>
                 <div id="consensusChartLegend" class="custom-legend"></div>
             </div>
-            <div id="scoresVisualization" class="visualization-container">
-                <div class="visualization-header">
-                    <h2 class="visualization-title">Points de Friction</h2>
-                    <p class="visualization-description">
-                        Comparaison des opinions opposées et leur support respectif. Les barres de gauche (orange) 
-                        et de droite (bleue) représentent le nombre de votes pour chaque opinion contradictoire.
-                    </p>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="scoresChart"></canvas>
-                </div>
-                <div id="scoresChartLegend" class="custom-legend"></div>
-            </div>
-            <div id="controversyVisualization" class="visualization-container">
+            <div id="opinionClusterVisualization" class="visualization-container">
                 <div class="visualization-header">
                     <h2 class="visualization-title">Groupes d'Opinions</h2>
                     <p class="visualization-description">Vue d'ensemble des groupes d'opinions similaires et leur poids dans la discussion</p>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="opinionClusterChart"></canvas>
+                </div>
+                <div id="opinionClusterLegend" class="custom-legend"></div>
+            </div>
+            <div id="controversyVisualization" class="visualization-container">
+                <div class="visualization-header">
+                    <h2 class="visualization-title">Points de Friction</h2>
+                    <p class="visualization-description">Comparaison des opinions opposées sur un même sujet et leur support respectif</p>
                 </div>
                 <div class="chart-wrapper">
                     <canvas id="controversyChart"></canvas>

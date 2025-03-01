@@ -463,8 +463,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Créer les visualisations
             visualizations.createOpinionClusterChart(currentAnalysis);
-            visualizations.createScoresChart(currentAnalysis);
             visualizations.createConsensusChart(currentAnalysis);
+            visualizations.createControversyChart(currentAnalysis);
             
             // Afficher les données textuelles
             displayOverview(currentAnalysis);
@@ -612,7 +612,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
                 // Créer les visualisations
                 visualizations.createOpinionClusterChart(testAnalysis);
-                visualizations.createScoresChart(testAnalysis);
                 visualizations.createConsensusChart(testAnalysis);
                 visualizations.createControversyChart(testAnalysis);
                 
