@@ -459,12 +459,25 @@ button:disabled {
 }
 
 .stat-card h3 {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
     margin-bottom: var(--spacing-md);
     color: var(--text-color);
     letter-spacing: -0.025em;
     padding-left: var(--spacing-xs);
+    position: relative;
+    display: inline-block;
+}
+
+.stat-card h3::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: var(--spacing-xs);
+    width: 40px;
+    height: 3px;
+    background-color: var(--primary-color);
+    border-radius: 2px;
 }
 
 .stat-value {
@@ -689,4 +702,193 @@ hr {
     height: 1px;
     background-color: var(--border-color);
     margin: var(--spacing-lg) 0;
+}
+
+/* Styles pour les sections d'opinions principales et points de désaccord */
+.comment-card {
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border-left: 4px solid var(--primary-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.comment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.comment-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, transparent 50%, rgba(0, 220, 130, 0.1) 50%);
+    border-radius: 0 0 0 8px;
+}
+
+.comment-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-color);
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.comment-text strong {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 15px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.comment-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-top: 10px;
+    margin-top: 4px;
+}
+
+.votes {
+    font-weight: 600;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+}
+
+.votes::before {
+    content: "👍";
+    margin-right: 4px;
+}
+
+.sentiment {
+    font-size: 16px;
+}
+
+.sentiment.positive {
+    color: var(--success-color);
+}
+
+.sentiment.negative {
+    color: var(--error-color);
+}
+
+.sentiment.neutral {
+    color: var(--text-secondary);
+}
+
+/* Points de friction */
+.friction-point {
+    background-color: var(--background-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border-left: 4px solid var(--secondary-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+}
+
+.friction-point:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.friction-point::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, transparent 50%, rgba(59, 130, 246, 0.1) 50%);
+    border-radius: 0 0 0 8px;
+}
+
+.friction-topic {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 10px;
+    padding-right: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.intensity-badge {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background-color: var(--background-tertiary);
+    padding: 3px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.friction-description {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 4px;
+}
+
+.friction-opinions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.opinion {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: var(--card-background);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.opinion-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-color);
+    flex: 1;
+}
+
+.opinion-votes {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--secondary-color);
+    white-space: nowrap;
+    margin-left: 8px;
+}
+
+.opinion-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin: 4px 0;
+    position: relative;
+}
+
+.opinion-divider::before,
+.opinion-divider::after {
+    content: "";
+    height: 1px;
+    background-color: var(--border-color);
+    flex: 1;
+    margin: 0 8px;
 }

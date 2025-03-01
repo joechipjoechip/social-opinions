@@ -43,8 +43,8 @@ function displayOverview(data) {
 function displayTopComments(data) {
     const topCommentsContent = document.getElementById('topCommentsContent');
     
-    if (!data || (!data.opinionClusters || data.opinionClusters.length === 0) && (!data.topComments || data.topComments.length === 0)) {
-        topCommentsContent.innerHTML = '<p class="error">Aucun commentaire disponible</p>';
+    if (!data) {
+        topCommentsContent.innerHTML = '<p class="error">Aucune donnée disponible</p>';
         return;
     }
     
@@ -69,10 +69,10 @@ function displayTopComments(data) {
             .slice(0, 3);
 
         topCommentsContent.innerHTML = topOpinions.map(opinion => `
-            <div class="stat-card">
-                <p><strong>${opinion.opinion}</strong></p>
-                <p>${truncateText(opinion.representativeComment, 120)}</p>
-                <div class="opinion-meta">
+            <div class="comment-card">
+                <p class="comment-text"><strong>${opinion.opinion}</strong></p>
+                <p class="comment-text">${truncateText(opinion.representativeComment, 100)}</p>
+                <div class="comment-meta">
                     <span class="votes">${formatNumber(opinion.totalVotes)} votes</span>
                 </div>
             </div>
@@ -104,7 +104,7 @@ function displayControversialPoints(data) {
         if (hasOpinions) {
             return `
                 <div class="friction-point">
-                    <p class="friction-topic"><strong>${point.topic}</strong> (Intensité: ${point.intensityScore.toFixed(1)}/10)</p>
+                    <p class="friction-topic">${point.topic} <span class="intensity-badge">Intensité: ${point.intensityScore.toFixed(1)}/10</span></p>
                     <div class="friction-opinions">
                         <div class="opinion">
                             <span class="opinion-text">${point.opinion1.text || point.opinion1.stance}</span>
@@ -122,7 +122,7 @@ function displayControversialPoints(data) {
             // Format alternatif si la structure est différente
             return `
                 <div class="friction-point">
-                    <p class="friction-topic"><strong>${point.topic}</strong> (Intensité: ${point.intensityScore.toFixed(1)}/10)</p>
+                    <p class="friction-topic">${point.topic} <span class="intensity-badge">Intensité: ${point.intensityScore.toFixed(1)}/10</span></p>
                     <p class="friction-description">Point de désaccord majeur dans la discussion</p>
                 </div>
             `;
