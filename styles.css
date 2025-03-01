@@ -378,7 +378,9 @@ button:disabled {
 .diverging-legend {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xs);
     width: 100%;
 }
 
@@ -386,19 +388,32 @@ button:disabled {
     display: flex;
     align-items: baseline;
     gap: 6px;
+    transition: opacity 0.2s ease;
+}
+.diverging-legend-item .legend-text-small {
+    white-space: unset;
+    overflow: visible;
+    text-overflow: unset;
+}
+
+.custom-legend-item:hover .diverging-legend-item {
+    opacity: 1;
 }
 
 .legend-text-bold {
     font-weight: 600;
     font-size: 14px;
-    color: #1F2937;
-    margin-bottom: 8px;
+    color: var(--text-color);
+    margin-bottom: 2px;
 }
 
 .legend-text-small {
     font-size: 12px;
-    color: #4B5563;
-    flex: 1;
+    color: var(--text-secondary);
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Stats and Cards */

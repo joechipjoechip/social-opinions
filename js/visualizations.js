@@ -486,18 +486,20 @@ export class Visualizations {
                 const opinion2Percent = Math.round((opinion2Value / totalVotes) * 100);
                 
                 return `
-                    <div class="custom-legend-item">
-                        <div class="legend-text-bold" title="${label}">${label}</div>
-                        <div class="diverging-legend">
-                            <div class="diverging-legend-item">
-                                <span class="legend-color-box" style="background-color: ${this.colors.quaternary}"></span>
-                                <span class="legend-value">${opinion1Percent}%</span>
-                                <span class="legend-text-small" title="${opinion1Stances[index]}">${opinion1Stances[index]}</span>
-                            </div>
-                            <div class="diverging-legend-item">
-                                <span class="legend-color-box" style="background-color: ${this.colors.secondary}"></span>
-                                <span class="legend-value">${opinion2Percent}%</span>
-                                <span class="legend-text-small" title="${opinion2Stances[index]}">${opinion2Stances[index]}</span>
+                    <div class="custom-legend-item" data-index="${index}">
+                        <div class="legend-item-container">
+                            <div class="legend-text-bold" title="${label}">${label}</div>
+                            <div class="diverging-legend">
+                                <div class="diverging-legend-item">
+                                    <span class="legend-color-box" style="background-color: ${this.colors.quaternary}"></span>
+                                    <span class="legend-value">${opinion1Percent}%</span>
+                                    <span class="legend-text-small" title="${opinion1Stances[index]}">${opinion1Stances[index]}</span>
+                                </div>
+                                <div class="diverging-legend-item">
+                                    <span class="legend-color-box" style="background-color: ${this.colors.secondary}"></span>
+                                    <span class="legend-value">${opinion2Percent}%</span>
+                                    <span class="legend-text-small" title="${opinion2Stances[index]}">${opinion2Stances[index]}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -505,6 +507,9 @@ export class Visualizations {
             }).join('');
             
             legendContainer.innerHTML = legendHTML;
+            
+            // Ajouter les interactions pour la légende
+            this.addControversyLegendInteractions(legendContainer, this.charts.controversy);
         }
     }
     
@@ -761,6 +766,82 @@ export class Visualizations {
                 // Restaurer les couleurs d'origine
                 const dataset = chart.data.datasets[0];
                 dataset.backgroundColor = colors.slice(0, dataset.data.length);
+                
+                // Restaurer les styles de la légende
+                legendItems.forEach(legendItem => {
+                    legendItem.classList.remove('highlight');
+                    legendItem.classList.remove('dimmed');
+                });
+                
+                chart.update();
+            };
+            
+            // Ajouter les événements à l'élément principal
+            item.addEventListener('mouseover', handleMouseOver);
+            item.addEventListener('mouseout', handleMouseOut);
+        });
+    }
+    
+    addControversyLegendInteractions(legendContainer, chart) {
+        const legendItems = legendContainer.querySelectorAll('.custom-legend-item');
+        
+        legendItems.forEach((item) => {
+            // Utiliser tout l'élément pour le survol
+            const handleMouseOver = () => {
+                const itemIndex = parseInt(item.getAttribute('data-index'));
+                
+                // Mettre en évidence la barre survolée dans le graphique
+                const dataset1 = chart.data.datasets[0];
+                const dataset2 = chart.data.datasets[1];
+                
+                // Sauvegarder les couleurs d'origine si ce n'est pas déjà fait
+                if (!dataset1._originalBackgroundColor) {
+                    dataset1._originalBackgroundColor = this.colors.quaternary;
+                    dataset2._originalBackgroundColor = this.colors.secondary;
+                }
+                
+                // Créer des tableaux de couleurs pour chaque barre
+                const newColors1 = [];
+                const newColors2 = [];
+                
+                for (let i = 0; i < chart.data.labels.length; i++) {
+                    if (i === itemIndex) {
+                        newColors1.push(dataset1._originalBackgroundColor);
+                        newColors2.push(dataset2._originalBackgroundColor);
+                    } else {
+                        newColors1.push(this.addTransparency(dataset1._originalBackgroundColor, 0.3));
+                        newColors2.push(this.addTransparency(dataset2._originalBackgroundColor, 0.3));
+                    }
+                }
+                
+                // Appliquer les nouvelles couleurs
+                dataset1.backgroundColor = newColors1;
+                dataset2.backgroundColor = newColors2;
+                
+                // Mettre à jour les styles de la légende
+                legendItems.forEach((legendItem, idx) => {
+                    if (idx === itemIndex) {
+                        legendItem.classList.add('highlight');
+                    } else {
+                        legendItem.classList.add('dimmed');
+                    }
+                });
+                
+                chart.update();
+            };
+            
+            const handleMouseOut = () => {
+                // Restaurer les couleurs d'origine
+                const dataset1 = chart.data.datasets[0];
+                const dataset2 = chart.data.datasets[1];
+                
+                // Utiliser les couleurs d'origine sauvegardées
+                const originalColor1 = dataset1._originalBackgroundColor || this.colors.quaternary;
+                const originalColor2 = dataset2._originalBackgroundColor || this.colors.secondary;
+                
+                // Réinitialiser les couleurs pour toutes les barres
+                dataset1.backgroundColor = originalColor1;
+                dataset2.backgroundColor = originalColor2;
                 
                 // Restaurer les styles de la légende
                 legendItems.forEach(legendItem => {
