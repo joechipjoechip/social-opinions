@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const debouncedAnalyze = debounce(async () => {
         try {
             // Réinitialiser l'UI
-            loadingDiv.style.display = 'block';
+            loadingDiv.classList.remove('hidden');
             errorDiv.style.display = 'none';
             visualizationContainers.forEach(container => {
                 container.style.display = 'none';
@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const authStatus = await checkAuthentication();
             
             if (!authStatus.isConfigured) {
-                loadingDiv.style.display = 'none';
+                loadingDiv.classList.add('hidden');
                 summarizeBtn.disabled = false;
                 
                 const authWarning = document.getElementById('authWarning');
@@ -543,7 +543,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
                 
                 // Masquer l'indicateur de chargement
-                document.getElementById('loading').style.display = 'none';
+                document.getElementById('loading').classList.add('hidden');
             }
             else if (error.message.includes('Node') || error.message.includes('DOM')) {
                 // Erreur DOM - essayer de récupérer
@@ -559,7 +559,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
                 
                 errorDiv.style.display = 'block';
-                document.getElementById('loading').style.display = 'none';
+                document.getElementById('loading').classList.add('hidden');
             } else {
                 // Erreur générique
                 errorDiv.innerHTML = `
@@ -574,10 +574,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 });
                 
                 errorDiv.style.display = 'block';
-                document.getElementById('loading').style.display = 'none';
+                document.getElementById('loading').classList.add('hidden');
             }
         } finally {
-            loadingDiv.style.display = 'none';
+            loadingDiv.classList.add('hidden');
             summarizeBtn.disabled = false;
         }
     }, 500);
@@ -592,7 +592,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Utiliser les données de test définies dans test-data.js
             if (typeof TEST_DATA !== 'undefined') {
                 // Masquer le chargement et les erreurs
-                loadingDiv.style.display = 'none';
+                loadingDiv.classList.add('hidden');
                 errorDiv.style.display = 'none';
                 
                 // Créer une instance de RedditAnalysis avec les données de test
