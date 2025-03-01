@@ -1,4 +1,4 @@
-import { formatNumber, getRandomColor } from './utils/helpers.js';
+import { formatNumber, getRandomColor, truncateText } from './utils/helpers.js';
 
 /**
  * Classe pour gérer les visualisations des données Reddit
@@ -158,6 +158,13 @@ export class Visualizations {
             
             // Ajouter les interactions pour la légende
             this.addLegendInteractions(legendContainer, this.charts.opinionCluster);
+            
+            // Ajouter la classe less-than-three si il y a moins de 3 éléments
+            if (labels.length < 3) {
+                legendContainer.classList.add('less-than-three');
+            } else {
+                legendContainer.classList.remove('less-than-three');
+            }
         }
     }
     
@@ -248,6 +255,13 @@ export class Visualizations {
             
             // Ajouter les interactions pour la légende
             this.addLegendInteractions(legendContainer, this.charts.scores);
+            
+            // Ajouter la classe less-than-three si il y a moins de 3 éléments
+            if (labels.length < 3) {
+                legendContainer.classList.add('less-than-three');
+            } else {
+                legendContainer.classList.remove('less-than-three');
+            }
         }
     }
     
@@ -348,6 +362,13 @@ export class Visualizations {
             
             // Ajouter les interactions pour la légende
             this.addLegendInteractions(legendContainer, this.charts.consensus);
+            
+            // Ajouter la classe less-than-three si il y a moins de 3 éléments
+            if (labels.length < 3) {
+                legendContainer.classList.add('less-than-three');
+            } else {
+                legendContainer.classList.remove('less-than-three');
+            }
         }
     }
     
@@ -510,6 +531,13 @@ export class Visualizations {
             
             // Ajouter les interactions pour la légende
             this.addControversyLegendInteractions(legendContainer, this.charts.controversy);
+            
+            // Ajouter la classe less-than-three si il y a moins de 3 éléments
+            if (labels.length < 3) {
+                legendContainer.classList.add('less-than-three');
+            } else {
+                legendContainer.classList.remove('less-than-three');
+            }
         }
     }
     
@@ -648,6 +676,13 @@ export class Visualizations {
             
             // Ajouter les interactions pour la légende du graphique en barres
             this.addBarLegendInteractions(legendContainer, this.charts.opinionGroups, colors);
+            
+            // Ajouter la classe less-than-three si il y a moins de 3 éléments
+            if (topClusters.length < 3) {
+                legendContainer.classList.add('less-than-three');
+            } else {
+                legendContainer.classList.remove('less-than-three');
+            }
         }
     }
     
