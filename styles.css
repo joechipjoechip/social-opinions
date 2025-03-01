@@ -289,12 +289,15 @@ button:disabled {
 
 /* Styles pour les légendes personnalisées */
 .custom-legend {
-    display: flex;
+    /* display: flex;
     flex-wrap: wrap;
+    justify-content: space-between; */
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
     margin-top: var(--spacing-md);
     padding-top: var(--spacing-sm);
     border-top: 1px solid var(--border-color);
-    gap: var(--spacing-md);
 }
 
 .custom-legend-item {
@@ -302,7 +305,6 @@ button:disabled {
     flex-flow: column nowrap;
     margin-bottom: var(--spacing-sm);
     font-size: 14px;
-    max-width: 180px;
     transition: transform 0.2s ease;
 }
 
@@ -332,11 +334,6 @@ button:disabled {
     color: var(--text-secondary);
     font-size: 13px;
     line-height: 1.4;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
 }
 
 .legend-value {
