@@ -474,9 +474,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // Créer les visualisations
             visualizations.createOpinionClusterChart(currentAnalysis);
-            visualizations.createOpinionGroupsChart(currentAnalysis);
             visualizations.createConsensusChart(currentAnalysis);
             visualizations.createControversyChart(currentAnalysis);
+            visualizations.createOpinionGroupsChart(currentAnalysis);
             
             // Afficher les données textuelles
             displayOverview(currentAnalysis);
@@ -631,9 +631,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 
                 // Créer les visualisations
                 visualizations.createOpinionClusterChart(testAnalysis);
-                visualizations.createOpinionGroupsChart(testAnalysis);
                 visualizations.createConsensusChart(testAnalysis);
                 visualizations.createControversyChart(testAnalysis);
+                visualizations.createOpinionGroupsChart(testAnalysis);
                 
                 // Activer le bouton d'exportation
                 exportBtn.disabled = false;
