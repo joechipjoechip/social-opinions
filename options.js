@@ -13,7 +13,10 @@ const resetButton = document.getElementById('resetBtn');
 const clearCacheButton = document.getElementById('clearCacheBtn');
 const statusMessage = document.getElementById('statusMessage');
 const analysisHistoryContainer = document.getElementById('analysisHistory');
+const authMethodSelect = document.getElementById('authMethod');
 const apiKeyRow = document.getElementById('apiKeyRow');
+const oauth2Row = document.getElementById('oauth2Row');
+const testOAuthButton = document.getElementById('testOAuthBtn');
 
 // Valeurs par défaut
 const defaultSettings = {
@@ -22,6 +25,7 @@ const defaultSettings = {
   cacheEnabled: 'true',
   cacheExpiration: '24',
   theme: 'auto',
+  authMethod: 'apiKey',
   savedAnalyses: []
 };
 
@@ -32,6 +36,8 @@ document.addEventListener('DOMContentLoaded', loadSettings);
 saveButton.addEventListener('click', saveSettings);
 resetButton.addEventListener('click', resetSettings);
 clearCacheButton.addEventListener('click', clearCache);
+authMethodSelect.addEventListener('change', toggleAuthMethod);
+testOAuthButton.addEventListener('click', testOAuth);
 
 /**
  * Charge les paramètres depuis le stockage local
@@ -43,6 +49,10 @@ function loadSettings() {
     cacheEnabledSelect.value = settings.cacheEnabled || 'true';
     cacheExpirationSelect.value = settings.cacheExpiration || '24';
     themeSelect.value = settings.theme || 'auto';
+    authMethodSelect.value = settings.authMethod || 'apiKey';
+    
+    // Afficher/masquer les options d'authentification en fonction de la méthode choisie
+    toggleAuthMethod();
     
     // Charger l'historique des analyses
     loadAnalysisHistory(settings.savedAnalyses);
@@ -50,6 +60,21 @@ function loadSettings() {
     // Appliquer le thème
     applyTheme(settings.theme);
   });
+}
+
+/**
+ * Affiche ou masque les options d'authentification en fonction de la méthode choisie
+ */
+function toggleAuthMethod() {
+  const authMethod = authMethodSelect.value;
+  
+  if (authMethod === 'oauth2') {
+    apiKeyRow.style.display = 'none';
+    oauth2Row.style.display = 'flex';
+  } else {
+    apiKeyRow.style.display = 'flex';
+    oauth2Row.style.display = 'none';
+  }
 }
 
 /**
@@ -61,6 +86,7 @@ function saveSettings() {
   const cacheEnabled = cacheEnabledSelect.value === 'true';
   const cacheExpiration = parseInt(cacheExpirationSelect.value, 10);
   const theme = themeSelect.value;
+  const authMethod = authMethodSelect.value;
   
   // Validation des entrées
   if (maxComments < 10 || maxComments > 500) {
@@ -73,11 +99,12 @@ function saveSettings() {
     maxComments,
     cacheEnabled,
     cacheExpiration,
-    theme
+    theme,
+    authMethod
   }, () => {
     showStatus('Paramètres enregistrés avec succès', 'success');
     
-    // Appliquer le thème
+    // Appliquer le nouveau thème
     applyTheme(theme);
   });
 }
@@ -92,7 +119,8 @@ function resetSettings() {
       maxComments: 150,
       cacheEnabled: true,
       cacheExpiration: 24,
-      theme: 'auto'
+      theme: 'auto',
+      authMethod: 'apiKey'
     };
     
     // Mettre à jour l'interface
@@ -101,6 +129,7 @@ function resetSettings() {
     cacheEnabledSelect.value = defaultOptions.cacheEnabled.toString();
     cacheExpirationSelect.value = defaultOptions.cacheExpiration.toString();
     themeSelect.value = defaultOptions.theme;
+    authMethodSelect.value = defaultOptions.authMethod;
     
     // Sauvegarder les valeurs par défaut
     chrome.storage.local.set(defaultOptions, () => {
@@ -292,4 +321,26 @@ function applyTheme(theme) {
   } else {
     document.body.classList.remove('dark-theme');
   }
+}
+
+/**
+ * Teste l'authentification OAuth2
+ */
+function testOAuth() {
+  showStatus('Test de l\'authentification OAuth2...', 'info');
+  
+  chrome.runtime.sendMessage({ action: 'testOAuth' }, (response) => {
+    if (chrome.runtime.lastError) {
+      console.error('Erreur:', chrome.runtime.lastError);
+      showStatus('Erreur lors du test OAuth2: ' + chrome.runtime.lastError.message, 'error');
+      return;
+    }
+    
+    if (response && response.success) {
+      showStatus(response.message, 'success');
+      console.log('Token partiel:', response.token);
+    } else {
+      showStatus(response.message || 'Échec du test OAuth2', 'error');
+    }
+  });
 }

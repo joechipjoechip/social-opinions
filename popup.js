@@ -210,23 +210,41 @@ async function saveAnalysisToStorage(analysis) {
  */
 async function checkAuthentication() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['apiKey'], (data) => {
-      // Vérifier la clé API
-      const apiKey = data.apiKey;
-      if (!apiKey) {
-        resolve({
-          isConfigured: false,
-          message: "Clé API Gemini non configurée. Veuillez la définir dans les paramètres."
+    chrome.storage.local.get(['authMethod', 'apiKey'], (data) => {
+      const authMethod = data.authMethod || 'apiKey';
+      
+      if (authMethod === 'oauth2') {
+        // Vérifier l'authentification OAuth2
+        chrome.identity.getAuthToken({ interactive: false }, (token) => {
+          if (chrome.runtime.lastError || !token) {
+            resolve({
+              isConfigured: false,
+              message: "L'authentification OAuth2 n'est pas configurée. Cliquez pour vous connecter ou utiliser une clé API.",
+              authMethod: 'oauth2'
+            });
+          } else {
+            resolve({ isConfigured: true, authMethod: 'oauth2' });
+          }
         });
       } else {
-        resolve({ isConfigured: true });
+        // Vérifier la clé API
+        const apiKey = data.apiKey;
+        if (!apiKey) {
+          resolve({
+            isConfigured: false,
+            message: "Clé API Gemini non configurée. Veuillez la définir dans les paramètres.",
+            authMethod: 'apiKey'
+          });
+        } else {
+          resolve({ isConfigured: true, authMethod: 'apiKey' });
+        }
       }
     });
   });
 }
 
 /**
- * Initialise les boutons de configuration
+ * Initialise l'authentification OAuth2 si nécessaire
  */
 function initAuthentication() {
   const configureAuthBtn = document.getElementById('configureAuth');
@@ -237,8 +255,35 @@ function initAuthentication() {
     return;
   }
   
-  configureAuthBtn.addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
+  chrome.storage.local.get(['authMethod'], (data) => {
+    const authMethod = data.authMethod || 'apiKey';
+    
+    if (authMethod === 'oauth2') {
+      configureAuthBtn.addEventListener('click', () => {
+        chrome.identity.getAuthToken({ interactive: true }, (token) => {
+          if (chrome.runtime.lastError) {
+            const errorMsg = chrome.runtime.lastError.message;
+            showError(`Erreur d'authentification: ${errorMsg}`);
+            
+            // Si l'erreur est liée à l'ID client, proposer de basculer vers la clé API
+            if (errorMsg.includes('bad client id') || errorMsg.includes('OAuth2')) {
+              if (confirm("Problème avec l'authentification OAuth2. Voulez-vous basculer vers l'authentification par clé API?")) {
+                chrome.storage.local.set({ authMethod: 'apiKey' }, () => {
+                  chrome.runtime.openOptionsPage();
+                });
+              }
+            }
+          } else if (token) {
+            document.getElementById('authWarning').style.display = 'none';
+            showSuccess('Authentification réussie');
+          }
+        });
+      });
+    } else {
+      configureAuthBtn.addEventListener('click', () => {
+        chrome.runtime.openOptionsPage();
+      });
+    }
   });
 }
 
@@ -297,6 +342,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     authWarning.style.display = 'block';
                     
                     let message = `<p>${authStatus.message}</p>`;
+                    
+                    // Afficher un message différent selon la méthode d'authentification
+                    if (authStatus.authMethod === 'oauth2') {
+                        message += `<p>Vous pouvez également utiliser une clé API Gemini.</p>`;
+                    }
                     
                     message += `<button id="configureAuth" class="primary-button">Configurer</button>`;
                     authWarning.innerHTML = message;
@@ -457,7 +507,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Vérifier si l'erreur est liée à l'authentification
             else if (error.message.includes('authentification') || 
                      error.message.includes('API key') || 
-                     error.message.includes('clé API')) {
+                     error.message.includes('clé API') ||
+                     error.message.includes('OAuth') ||
+                     error.message.includes('client id')) {
                 
                 // Afficher l'avertissement d'authentification
                 const authWarning = document.getElementById('authWarning');
@@ -466,11 +518,28 @@ document.addEventListener('DOMContentLoaded', async function() {
                     
                     let message = `<p>Erreur d'authentification: ${error.message}</p>`;
                     
+                    // Si l'erreur est liée à OAuth2, proposer de basculer vers la clé API
+                    if (error.message.includes('OAuth') || error.message.includes('client id')) {
+                        message += `<p>L'authentification OAuth2 a échoué. Vous pouvez basculer vers l'authentification par clé API.</p>`;
+                        message += `<button id="switchToApiKey" class="secondary-button">Utiliser la clé API</button> `;
+                    }
+                    
                     message += `<button id="configureAuth" class="primary-button">Configurer</button>`;
                     authWarning.innerHTML = message;
                     
                     // Initialiser le bouton de configuration
                     initAuthentication();
+                    
+                    // Ajouter un écouteur pour le bouton de basculement vers la clé API
+                    const switchBtn = document.getElementById('switchToApiKey');
+                    if (switchBtn) {
+                        switchBtn.addEventListener('click', () => {
+                            chrome.storage.local.set({ authMethod: 'apiKey' }, () => {
+                                showSuccess('Basculé vers l\'authentification par clé API');
+                                chrome.runtime.openOptionsPage();
+                            });
+                        });
+                    }
                 }
                 
                 // Masquer l'indicateur de chargement

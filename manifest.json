@@ -10,7 +10,8 @@
     "activeTab",
     "storage",
     "scripting",
-    "tabs"
+    "tabs",
+    "identity"
   ],
   "host_permissions": [
     "*://*.reddit.com/*",
@@ -39,5 +40,11 @@
   ],
   "background": {
     "service_worker": "background.js"
+  },
+  "oauth2": {
+    "client_id": "274847669888-3g71rhjdrk3ivni2opnkg6so7m5b0md5.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
   }
 }
