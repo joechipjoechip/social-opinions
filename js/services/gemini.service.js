@@ -253,7 +253,7 @@ class GeminiService {
                     body: JSON.stringify({
                         "contents": [{
                             "parts": [{
-                                "text": `Analyse les commentaires Reddit suivants en te concentrant sur l'identification des opinions principales, leur popularité basée sur les votes, et les points de consensus/friction. 
+                                "text": `Analyse les commentaires Reddit suivants en te concentrant sur la diversité des opinions et leurs popularités respectives en te basant sur le nombre de votes pour chaque opinion. Propose une analyse sensible et sémantiquement valide. Regroupe les opinions similaires dans les points de consensus. Mets en évidence les opinions opposées dans les points de frictions. Fais en sorte que les points de consensus et points de frictions apportent une contribution significative à l'analyse.
 IMPORTANT: Ta réponse doit être un objet JSON valide, sans aucun texte avant ou après. Utilise uniquement des guillemets doubles pour les chaînes.
 
 Titre: ${pageContent.postTitle}
@@ -317,7 +317,7 @@ Format de sortie attendu:
                             "temperature": 0.7,
                             "topK": 40,
                             "topP": 0.95,
-                            "maxOutputTokens": 2048
+                            "maxOutputTokens": 4096
                         }
                     })
                 });
