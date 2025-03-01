@@ -156,7 +156,7 @@ export class Visualizations {
     }
     
     /**
-     * Crée un graphique en barres pour les scores des différentes opinions
+     * Crée un graphique en camembert pour les scores des différentes opinions
      * @param {RedditAnalysis} data - Données d'analyse
      */
     createScoresChart(data) {
@@ -186,57 +186,33 @@ export class Visualizations {
         
         // Création du graphique
         this.charts.scores = new Chart(ctx, {
-            type: 'bar',
+            type: 'pie',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Votes',
                     data: values,
                     backgroundColor: colors,
-                    borderColor: 'rgba(255, 255, 255, 0.7)',
-                    borderWidth: 1,
-                    borderRadius: 6,
-                    maxBarThickness: 30
+                    borderColor: 'white',
+                    borderWidth: 2,
+                    borderRadius: 4,
+                    hoverOffset: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                indexAxis: 'y',
                 plugins: {
                     legend: {
-                        display: false // Désactiver la légende native
+                        display: false // Désactiver la légende native de Chart.js
                     },
                     tooltip: {
                         callbacks: {
                             label: (context) => {
-                                return `${formatNumber(context.raw)} votes`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.03)'
-                        },
-                        border: {
-                            display: false
-                        }
-                    },
-                    y: {
-                        grid: {
-                            display: false
-                        },
-                        border: {
-                            display: false
-                        },
-                        ticks: {
-                            padding: 10,
-                            color: '#1F2937',
-                            font: {
-                                size: 12
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${formatNumber(value)} votes (${percentage}%)`;
                             }
                         }
                     }
@@ -246,12 +222,14 @@ export class Visualizations {
         
         // Créer une légende HTML personnalisée
         if (legendContainer) {
+            const total = values.reduce((a, b) => a + b, 0);
             const legendHTML = labels.map((label, index) => {
+                const percentage = Math.round((values[index] / total) * 100);
                 return `
                     <div class="custom-legend-item">
                     <div class="custom-legend-item-head">
                         <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
-                        <span class="legend-value">${formatNumber(values[index])} votes</span>
+                        <span class="legend-value">${percentage}%</span>
                         </div>
                         <span class="legend-text" title="${label}">${label}</span>
                     </div>
@@ -263,7 +241,7 @@ export class Visualizations {
     }
     
     /**
-     * Crée un graphique en barres horizontales pour les points de consensus
+     * Crée un graphique en camembert pour les points de consensus
      * @param {RedditAnalysis} data - Données d'analyse
      */
     createConsensusChart(data) {
@@ -303,23 +281,21 @@ export class Visualizations {
         
         // Création du graphique
         this.charts.consensus = new Chart(ctx, {
-            type: 'bar',
+            type: 'pie',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Niveau de consensus',
                     data: values,
                     backgroundColor: colors,
                     borderColor: 'white',
-                    borderWidth: 1,
-                    borderRadius: 6,
-                    maxBarThickness: 30
+                    borderWidth: 2,
+                    borderRadius: 4,
+                    hoverOffset: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                indexAxis: 'y',
                 plugins: {
                     legend: {
                         display: false // Désactiver la légende native
@@ -327,41 +303,11 @@ export class Visualizations {
                     tooltip: {
                         callbacks: {
                             label: (context) => {
+                                const label = context.label || '';
                                 const value = context.raw || 0;
-                                return `Consensus: ${Math.round(value)}%`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.03)'
-                        },
-                        border: {
-                            display: false
-                        },
-                        ticks: {
-                            callback: (value) => {
-                                return `${value}%`;
-                            },
-                            color: '#6B7280'
-                        }
-                    },
-                    y: {
-                        grid: {
-                            display: false
-                        },
-                        border: {
-                            display: false
-                        },
-                        ticks: {
-                            padding: 10,
-                            color: '#1F2937',
-                            font: {
-                                size: 12
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: Consensus ${Math.round(value)}% (${percentage}% du total)`;
                             }
                         }
                     }
@@ -371,12 +317,14 @@ export class Visualizations {
         
         // Créer une légende HTML personnalisée
         if (legendContainer) {
+            const total = values.reduce((a, b) => a + b, 0);
             const legendHTML = labels.map((label, index) => {
+                const percentage = Math.round((values[index] / total) * 100);
                 return `
                     <div class="custom-legend-item">
                     <div class="custom-legend-item-head">
                         <span class="legend-color-box" style="background-color: ${colors[index]}"></span>
-                        <span class="legend-value">${Math.round(values[index])}%</span>
+                        <span class="legend-value">${percentage}%</span>
                         </div>
                         <span class="legend-text" title="${label}">${label}</span>
                     </div>
@@ -388,7 +336,8 @@ export class Visualizations {
     }
     
     /**
-     * Crée un graphique à barres horizontales pour les groupes d'opinions
+     * Crée un graphique à barres horizontales opposées pour les points de friction
+     * Idéal pour comparer les opinions divergentes sur un même sujet
      * @param {RedditAnalysis} data - Données d'analyse
      */
     createControversyChart(data) {
@@ -414,32 +363,40 @@ export class Visualizations {
             .sort((a, b) => b.intensityScore - a.intensityScore)
             .slice(0, 5);
         
+        // Préparer les données pour un graphique à barres horizontales opposées
         const labels = topFrictionPoints.map(point => point.topic);
-        const values = topFrictionPoints.map(point => point.intensityScore * 10); // Échelle de 0 à 100
+        const opinion1Values = topFrictionPoints.map(point => point.opinion1.votes);
+        const opinion2Values = topFrictionPoints.map(point => -point.opinion2.votes); // Valeurs négatives pour l'affichage opposé
         
-        // Générer des couleurs pour chaque barre
-        const colors = [
-            this.colors.primary,
-            this.colors.secondary,
-            this.colors.tertiary,
-            this.colors.quaternary,
-            this.colors.quinary
-        ];
+        // Stocker les stances pour l'affichage dans les légendes
+        const opinion1Stances = topFrictionPoints.map(point => point.opinion1.stance);
+        const opinion2Stances = topFrictionPoints.map(point => point.opinion2.stance);
         
-        // Création du graphique à barres horizontales
+        // Création du graphique à barres horizontales opposées
         this.charts.controversy = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Intensité',
-                    data: values,
-                    backgroundColor: colors,
-                    borderColor: 'white',
-                    borderWidth: 1,
-                    borderRadius: 6,
-                    maxBarThickness: 30
-                }]
+                datasets: [
+                    {
+                        label: 'Opinion 1',
+                        data: opinion1Values,
+                        backgroundColor: this.colors.quaternary, // Orange
+                        borderColor: 'white',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        maxBarThickness: 30
+                    },
+                    {
+                        label: 'Opinion 2',
+                        data: opinion2Values,
+                        backgroundColor: this.colors.secondary, // Bleu
+                        borderColor: 'white',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        maxBarThickness: 30
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -447,8 +404,8 @@ export class Visualizations {
                 indexAxis: 'y', // Rend le graphique horizontal
                 scales: {
                     x: {
+                        stacked: false,
                         beginAtZero: true,
-                        max: 100,
                         grid: {
                             color: 'rgba(0, 0, 0, 0.03)'
                         },
@@ -457,12 +414,14 @@ export class Visualizations {
                         },
                         ticks: {
                             callback: function(value) {
-                                return value + '/100';
+                                // Afficher les valeurs absolues
+                                return Math.abs(value);
                             },
                             color: '#6B7280'
                         }
                     },
                     y: {
+                        stacked: true,
                         grid: {
                             display: false
                         },
@@ -485,8 +444,15 @@ export class Visualizations {
                     tooltip: {
                         callbacks: {
                             label: (context) => {
-                                const value = context.raw || 0;
-                                return `Intensité: ${(value/10).toFixed(1)}/10`;
+                                const datasetIndex = context.datasetIndex;
+                                const index = context.dataIndex;
+                                const value = Math.abs(context.raw);
+                                
+                                if (datasetIndex === 0) {
+                                    return `${opinion1Stances[index]}: ${value} votes`;
+                                } else {
+                                    return `${opinion2Stances[index]}: ${value} votes`;
+                                }
                             }
                         }
                     }
@@ -497,13 +463,27 @@ export class Visualizations {
         // Créer une légende HTML personnalisée
         if (legendContainer) {
             const legendHTML = labels.map((label, index) => {
+                const opinion1Value = opinion1Values[index];
+                const opinion2Value = Math.abs(opinion2Values[index]);
+                const totalVotes = opinion1Value + opinion2Value;
+                const opinion1Percent = Math.round((opinion1Value / totalVotes) * 100);
+                const opinion2Percent = Math.round((opinion2Value / totalVotes) * 100);
+                
                 return `
                     <div class="custom-legend-item">
-                        <div class="custom-legend-item-head">
-                            <span class="legend-color-box" style="background-color: ${colors[index % colors.length]}"></span>
-                            <span class="legend-value">${(values[index]/10).toFixed(1)}/10</span>
+                        <div class="legend-text-bold" title="${label}">${label}</div>
+                        <div class="diverging-legend">
+                            <div class="diverging-legend-item">
+                                <span class="legend-color-box" style="background-color: ${this.colors.quaternary}"></span>
+                                <span class="legend-value">${opinion1Percent}%</span>
+                                <span class="legend-text-small" title="${opinion1Stances[index]}">${opinion1Stances[index]}</span>
+                            </div>
+                            <div class="diverging-legend-item">
+                                <span class="legend-color-box" style="background-color: ${this.colors.secondary}"></span>
+                                <span class="legend-value">${opinion2Percent}%</span>
+                                <span class="legend-text-small" title="${opinion2Stances[index]}">${opinion2Stances[index]}</span>
+                            </div>
                         </div>
-                        <span class="legend-text" title="${label}">${label}</span>
                     </div>
                 `;
             }).join('');

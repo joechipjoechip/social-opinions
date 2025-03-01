@@ -288,15 +288,15 @@ Format de sortie attendu:
   ],
   "frictionPoints": [
     {
-      "topic": "<sujet>",
+      "topic": "<sujet de désaccord précis>",
       "opinion1": {
-        "stance": "<position>",
-        "votes": <nombre>,
+        "stance": "<position favorable ou pour - phrase courte et claire>",
+        "votes": <nombre positif>,
         "keyArguments": ["<argument 1>", "<argument 2>"]
       },
       "opinion2": {
-        "stance": "<position opposée>",
-        "votes": <nombre>,
+        "stance": "<position opposée ou contre - phrase courte et claire>",
+        "votes": <nombre positif>,
         "keyArguments": ["<argument 1>", "<argument 2>"]
       },
       "intensityScore": <0-1>
@@ -310,7 +310,14 @@ Format de sortie attendu:
       "topComments": ["<commentaire 1>", "<commentaire 2>"]
     }
   ]
-}`
+}
+
+IMPORTANT:
+- Pour les frictionPoints, assure-toi que chaque sujet contient EXACTEMENT deux opinions clairement opposées
+- Les stances doivent être des phrases courtes (max 10 mots) et clairement opposées (pour/contre)
+- Les votes doivent toujours être des nombres positifs (ne pas utiliser de valeurs négatives)
+- Identifie les sujets de désaccord les plus importants et les plus polarisants
+- Chaque sujet doit être spécifique et concret, pas vague ou général`
                             }]
                         }],
                         "generationConfig": {

@@ -289,33 +289,29 @@ button:disabled {
 
 /* Styles pour les légendes personnalisées */
 .custom-legend {
-    /* display: flex;
+    display: flex;
     flex-wrap: wrap;
-    justify-content: space-between; */
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-top: var(--spacing-md);
-    padding-top: var(--spacing-sm);
-    border-top: 1px solid var(--border-color);
+    gap: 12px;
+    margin-top: 16px;
+    justify-content: center;
 }
 
 .custom-legend-item {
     display: flex;
-    flex-flow: column nowrap;
-    margin-bottom: var(--spacing-sm);
-    font-size: 14px;
-    transition: transform 0.2s ease;
-}
-
-.custom-legend-item:hover {
-    transform: translateY(-2px);
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 120px;
+    max-width: 200px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .custom-legend-item-head {
     display: flex;
-    flex-flow: row nowrap;
     align-items: center;
+    gap: 6px;
     margin-bottom: 4px;
 }
 
@@ -323,34 +319,66 @@ button:disabled {
     width: 12px;
     height: 12px;
     border-radius: 3px;
-    margin-right: 8px;
     display: inline-block;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.legend-text {
-    margin-right: 5px;
-    white-space: normal;
-    color: var(--text-secondary);
-    font-size: 13px;
-    line-height: 1.4;
 }
 
 .legend-value {
     font-weight: 600;
-    color: var(--text-color);
     font-size: 14px;
+    color: #1F2937;
 }
 
-/* Optimisation pour les petits écrans */
-@media (max-width: 600px) {
-    .chart-wrapper {
-        height: 250px;
-    }
-    
-    .custom-legend {
-        flex-direction: column;
-    }
+.legend-text {
+    font-size: 13px;
+    color: #4B5563;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+/* Titre de la section légende */
+.legend-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1F2937;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* Styles pour les légendes divergentes */
+.diverging-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.diverging-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-text-bold {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1F2937;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+.legend-text-small {
+    font-size: 12px;
+    color: #4B5563;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
 }
 
 /* Stats and Cards */
