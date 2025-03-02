@@ -2,7 +2,7 @@
  * Module de types de graphiques pour Reddit Opinions
  * Contient des fonctions spécialisées pour créer différents types de graphiques
  */
-import { formatNumber, truncateText } from '../utils/helpers.js';
+import { formatNumber, truncateText } from '../utils/index.js';
 
 /**
  * Crée un graphique en camembert pour les scores des différentes opinions
@@ -200,9 +200,9 @@ export function createControversyChart(ctx, data, config) {
                             const value = Math.abs(context.raw);
                             
                             if (datasetIndex === 0) {
-                                return `${opinion1Stances[index]}: ${value} votes`;
+                                return `${opinion1Stances[index]}: ${formatNumber(value)} votes`;
                             } else {
-                                return `${opinion2Stances[index]}: ${value} votes`;
+                                return `${opinion2Stances[index]}: ${formatNumber(value)} votes`;
                             }
                         }
                     }
@@ -225,80 +225,86 @@ export function createOpinionGroupsChart(ctx, data, config) {
         return null;
     }
     
-    // Limiter à 8 opinions maximum pour le graphique en barres
     // Trier par votes et prendre les 8 premiers
-    const sortedClusters = [...data].sort((a, b) => b.totalVotes - a.totalVotes);
-    const topClusters = sortedClusters.slice(0, 8);
+    const sortedData = [...data].sort((a, b) => b.totalVotes - a.totalVotes).slice(0, 8);
     
-    // Extraire les données
-    const labels = topClusters.map(cluster => cluster.opinion);
-    const values = topClusters.map(cluster => cluster.totalVotes);
+    const labels = sortedData.map(item => item.opinion);
+    const values = sortedData.map(item => item.totalVotes);
     
-    // Calculer le total des votes pour les pourcentages
-    const totalVotes = values.reduce((sum, value) => sum + value, 0);
-    
-    // Générer un tableau de couleurs pour chaque barre
+    // Définir des couleurs spécifiques pour ce graphique
     const colors = [
-        config.colors.primary,    // Vert
-        config.colors.secondary,  // Bleu
-        config.colors.tertiary,   // Violet stylé
-        config.colors.quaternary, // Orange
-        config.colors.quinary,    // Violet
-        config.colors.senary,     // Rose
-        '#14B8A6',              // Teal
-        '#6366F1'               // Indigo
-    ];
+        config.colors.primary,
+        config.colors.secondary,
+        config.colors.tertiary,
+        config.colors.quaternary,
+        config.colors.quinary,
+        config.colors.senary,
+        '#14B8A6',
+        '#6366F1'
+    ].slice(0, sortedData.length);
     
-    // Création du graphique en barres
+    // Création du graphique à barres
     return new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [{
-                label: 'Votes',
                 data: values,
-                backgroundColor: colors.slice(0, topClusters.length),
+                backgroundColor: colors,
                 borderColor: 'white',
                 borderWidth: 1,
                 borderRadius: 6,
-                maxBarThickness: 30
+                maxBarThickness: 40
             }]
         },
         options: {
-            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.03)'
+                    },
+                    border: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#6B7280'
+                    }
                 },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const value = context.raw;
-                            const percentage = Math.round((value / totalVotes) * 100);
-                            return `Votes: ${value.toLocaleString()} (${percentage}%)`;
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    border: {
+                        display: false
+                    },
+                    ticks: {
+                        padding: 5,
+                        color: '#1F2937',
+                        font: {
+                            size: 12
+                        },
+                        callback: function(value) {
+                            // Tronquer les textes trop longs
+                            const label = this.getLabelForValue(value);
+                            return truncateText(label, 15);
                         }
                     }
                 }
             },
-            scales: {
-                y: {
-                    ticks: {
-                        callback: function(value) {
-                            // Tronquer les textes trop longs
-                            const label = this.getLabelForValue(value);
-                            if (label && label.length > 25) {
-                                return label.substring(0, 22) + '...';
-                            }
-                            return label;
-                        }
-                    }
+            plugins: {
+                legend: {
+                    display: false // Désactiver la légende native
                 },
-                x: {
-                    beginAtZero: true,
-                    grid: {
-                        display: false
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const value = context.raw;
+                            const label = context.label || '';
+                            return `${label}: ${formatNumber(value)} votes`;
+                        }
                     }
                 }
             }

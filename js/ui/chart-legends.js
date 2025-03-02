@@ -2,7 +2,7 @@
  * Module de légendes pour les graphiques de Reddit Opinions
  * Contient des fonctions pour créer et gérer des légendes personnalisées
  */
-import { formatNumber } from '../utils/helpers.js';
+import { formatNumber } from '../utils/index.js';
 
 /**
  * Crée une légende personnalisée standard pour les graphiques circulaires
@@ -258,7 +258,14 @@ export function toggleDataVisibility(chart, dataIndex, legendItem) {
  * @returns {string} - Couleur avec opacité ajustée
  */
 export function adjustOpacity(color, opacity) {
+    // Handle null, undefined, or non-string values
     if (!color) return 'rgba(128, 128, 128, ' + opacity + ')';
+    
+    // Ensure color is a string
+    if (typeof color !== 'string') {
+        console.warn('adjustOpacity received non-string color:', color);
+        return 'rgba(128, 128, 128, ' + opacity + ')';
+    }
     
     if (color.startsWith('#')) {
         // Convertir hex en rgba
