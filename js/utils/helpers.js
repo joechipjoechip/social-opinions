@@ -4,17 +4,23 @@
 
 /**
  * Formate un nombre pour l'affichage (ex: 1000 -> 1k)
- * @param {number} num - Nombre à formater
+ * @param {number|string} num - Nombre à formater
  * @returns {string} - Nombre formaté
  */
 export function formatNumber(num) {
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
+    // Vérification et conversion du type
+    const parsedNum = Number(num);
+    
+    // Si la valeur n'est pas un nombre valide, retourner '0'
+    if (isNaN(parsedNum)) return '0';
+    
+    if (parsedNum >= 1000000) {
+        return (parsedNum / 1000000).toFixed(1) + 'M';
     }
-    if (num >= 1000) {
-        return (num / 1000).toFixed(1) + 'k';
+    if (parsedNum >= 1000) {
+        return (parsedNum / 1000).toFixed(1) + 'k';
     }
-    return num.toString();
+    return parsedNum.toString();
 }
 
 /**
@@ -24,7 +30,10 @@ export function formatNumber(num) {
  * @returns {string} - Texte tronqué
  */
 export function truncateText(text, maxLength = 100) {
-    if (!text || text.length <= maxLength) return text;
+    // Vérification du type
+    if (!text || typeof text !== 'string') return '';
+    
+    if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
 }
 
@@ -47,6 +56,11 @@ export function getRandomColor() {
  * @returns {string} - Couleur du texte (#000000 ou #FFFFFF)
  */
 export function getTextColorForBackground(backgroundColor) {
+    // Vérification du format de la couleur
+    if (!backgroundColor || typeof backgroundColor !== 'string' || !backgroundColor.startsWith('#') || backgroundColor.length !== 7) {
+        return '#000000'; // Noir par défaut en cas d'erreur
+    }
+    
     // Convertir la couleur hex en RGB
     const r = parseInt(backgroundColor.substring(1, 3), 16);
     const g = parseInt(backgroundColor.substring(3, 5), 16);
@@ -109,8 +123,15 @@ export function createElement(tag, attributes = {}, content = null) {
  * @returns {number} - Pourcentage (0-100)
  */
 export function calculatePercentage(value, total) {
-    if (!total) return 0;
-    return (value / total) * 100;
+    // Vérification des types et valeurs
+    const parsedValue = Number(value);
+    const parsedTotal = Number(total);
+    
+    if (isNaN(parsedValue) || isNaN(parsedTotal) || parsedTotal === 0) {
+        return 0;
+    }
+    
+    return (parsedValue / parsedTotal) * 100;
 }
 
 /**
@@ -128,6 +149,10 @@ export function generateUniqueId() {
  * @returns {Function} - Fonction debouncée
  */
 export function debounce(func, wait = 300) {
+    if (typeof func !== 'function') {
+        throw new Error('Le premier argument doit être une fonction');
+    }
+    
     let timeout;
     return function executedFunction(...args) {
         const later = () => {
@@ -137,4 +162,23 @@ export function debounce(func, wait = 300) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+/**
+ * Vérifie si une valeur est définie et non null
+ * @param {*} value - Valeur à vérifier
+ * @returns {boolean} - true si la valeur est définie et non null
+ */
+export function isDefined(value) {
+    return value !== undefined && value !== null;
+}
+
+/**
+ * Récupère une valeur avec une valeur par défaut si non définie
+ * @param {*} value - Valeur à vérifier
+ * @param {*} defaultValue - Valeur par défaut
+ * @returns {*} - Valeur ou valeur par défaut
+ */
+export function getValueOrDefault(value, defaultValue) {
+    return isDefined(value) ? value : defaultValue;
 }
