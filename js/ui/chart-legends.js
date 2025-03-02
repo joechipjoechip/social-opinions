@@ -133,11 +133,14 @@ export function addLegendInteractions(legendContainer, chart, highlightCallback,
 export function highlightPieDataset(chart, dataIndex) {
     if (!chart || !chart.data || !chart.data.datasets || chart.data.datasets.length === 0) return;
     
-    // Réduire l'opacité de tous les segments sauf celui survolé
+    // Sauvegarder les couleurs originales si ce n'est pas déjà fait
     const dataset = chart.data.datasets[0];
-    const originalBackgroundColors = [...dataset.backgroundColor];
+    if (!dataset.originalBackgroundColor) {
+        dataset.originalBackgroundColor = [...dataset.backgroundColor];
+    }
     
-    const newBackgroundColors = originalBackgroundColors.map((color, index) => {
+    // Réduire l'opacité de tous les segments sauf celui survolé
+    const newBackgroundColors = dataset.originalBackgroundColor.map((color, index) => {
         return index === dataIndex ? color : adjustOpacity(color, 0.3);
     });
     
@@ -153,11 +156,14 @@ export function highlightPieDataset(chart, dataIndex) {
 export function highlightBarDataset(chart, dataIndex) {
     if (!chart || !chart.data || !chart.data.datasets || chart.data.datasets.length === 0) return;
     
-    // Réduire l'opacité de toutes les barres sauf celle survolée
+    // Sauvegarder les couleurs originales si ce n'est pas déjà fait
     const dataset = chart.data.datasets[0];
-    const originalBackgroundColors = [...dataset.backgroundColor];
+    if (!dataset.originalBackgroundColor) {
+        dataset.originalBackgroundColor = [...dataset.backgroundColor];
+    }
     
-    const newBackgroundColors = originalBackgroundColors.map((color, index) => {
+    // Réduire l'opacité de toutes les barres sauf celle survolée
+    const newBackgroundColors = dataset.originalBackgroundColor.map((color, index) => {
         return index === dataIndex ? color : adjustOpacity(color, 0.3);
     });
     
@@ -173,12 +179,17 @@ export function highlightBarDataset(chart, dataIndex) {
 export function highlightControversyDataset(chart, dataIndex) {
     if (!chart || !chart.data || !chart.data.datasets || chart.data.datasets.length < 2) return;
     
-    // Réduire l'opacité de toutes les barres sauf celle survolée
+    // Sauvegarder les couleurs originales si ce n'est pas déjà fait
     const dataset1 = chart.data.datasets[0];
     const dataset2 = chart.data.datasets[1];
     
-    const originalColor1 = dataset1.backgroundColor;
-    const originalColor2 = dataset2.backgroundColor;
+    if (!dataset1.originalBackgroundColor) {
+        dataset1.originalBackgroundColor = dataset1.backgroundColor;
+    }
+    
+    if (!dataset2.originalBackgroundColor) {
+        dataset2.originalBackgroundColor = dataset2.backgroundColor;
+    }
     
     // Créer des tableaux de couleurs pour chaque barre
     const newColors1 = [];
@@ -186,11 +197,11 @@ export function highlightControversyDataset(chart, dataIndex) {
     
     for (let i = 0; i < chart.data.labels.length; i++) {
         if (i === dataIndex) {
-            newColors1.push(originalColor1);
-            newColors2.push(originalColor2);
+            newColors1.push(dataset1.originalBackgroundColor);
+            newColors2.push(dataset2.originalBackgroundColor);
         } else {
-            newColors1.push(adjustOpacity(originalColor1, 0.3));
-            newColors2.push(adjustOpacity(originalColor2, 0.3));
+            newColors1.push(adjustOpacity(dataset1.originalBackgroundColor, 0.3));
+            newColors2.push(adjustOpacity(dataset2.originalBackgroundColor, 0.3));
         }
     }
     
@@ -205,22 +216,26 @@ export function highlightControversyDataset(chart, dataIndex) {
  * @param {Chart} chart - Instance de graphique
  */
 export function resetPieHighlight(chart) {
-    if (!chart || !chart.data || !chart.data.datasets || chart.data.datasets.length === 0) return;
+    if (!chart || !chart.data || !chart.data.datasets) return;
     
-    // Restaurer les couleurs originales
-    const dataset = chart.data.datasets[0];
-    const meta = chart.getDatasetMeta(0);
-    
-    if (meta && meta.data) {
-        dataset.backgroundColor = meta.data.map((_, index) => {
-            const hidden = meta.data[index].hidden;
-            const originalColor = chart.data.datasets[0]._meta?.originalColors?.[index] || 
-                                 chart.data.datasets[0].originalBackgroundColor?.[index];
-            
-            return hidden ? adjustOpacity(originalColor || dataset.backgroundColor[index], 0.3) : 
-                           (originalColor || dataset.backgroundColor[index]);
-        });
-    }
+    // Restaurer les couleurs originales pour tous les datasets
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+        if (dataset.originalBackgroundColor) {
+            // Si c'est un tableau, appliquer directement
+            if (Array.isArray(dataset.originalBackgroundColor)) {
+                dataset.backgroundColor = [...dataset.originalBackgroundColor];
+            } 
+            // Si c'est une seule couleur, l'appliquer à tous les éléments
+            else {
+                const meta = chart.getDatasetMeta(datasetIndex);
+                if (meta && meta.data) {
+                    dataset.backgroundColor = Array(meta.data.length).fill(dataset.originalBackgroundColor);
+                } else {
+                    dataset.backgroundColor = dataset.originalBackgroundColor;
+                }
+            }
+        }
+    });
     
     chart.update();
 }
@@ -232,23 +247,22 @@ export function resetPieHighlight(chart) {
  * @param {HTMLElement} legendItem - Élément de légende correspondant
  */
 export function toggleDataVisibility(chart, dataIndex, legendItem) {
-    if (!chart) return;
+    if (!chart || !chart.getDatasetMeta) return;
     
     const meta = chart.getDatasetMeta(0);
     if (!meta || !meta.data || !meta.data[dataIndex]) return;
     
     // Basculer la visibilité
     meta.data[dataIndex].hidden = !meta.data[dataIndex].hidden;
-    chart.update();
     
-    // Mettre à jour l'apparence de l'élément de légende
-    if (legendItem) {
-        if (meta.data[dataIndex].hidden) {
-            legendItem.classList.add('legend-item-hidden');
-        } else {
-            legendItem.classList.remove('legend-item-hidden');
-        }
+    // Ajouter/supprimer la classe pour le style
+    if (meta.data[dataIndex].hidden) {
+        legendItem.classList.add('legend-item-hidden');
+    } else {
+        legendItem.classList.remove('legend-item-hidden');
     }
+    
+    chart.update();
 }
 
 /**
@@ -258,28 +272,36 @@ export function toggleDataVisibility(chart, dataIndex, legendItem) {
  * @returns {string} - Couleur avec opacité ajustée
  */
 export function adjustOpacity(color, opacity) {
-    // Handle null, undefined, or non-string values
-    if (!color) return 'rgba(128, 128, 128, ' + opacity + ')';
+    if (!color) return 'rgba(0, 0, 0, ' + opacity + ')';
     
-    // Ensure color is a string
-    if (typeof color !== 'string') {
-        console.warn('adjustOpacity received non-string color:', color);
-        return 'rgba(128, 128, 128, ' + opacity + ')';
+    // Si la couleur est déjà au format rgba, ajuster l'opacité
+    if (color.startsWith('rgba')) {
+        return color.replace(/rgba\((.+),\s*[\d\.]+\)/, 'rgba($1, ' + opacity + ')');
     }
     
+    // Si la couleur est au format rgb, convertir en rgba
+    if (color.startsWith('rgb(')) {
+        return color.replace(/rgb\((.+)\)/, 'rgba($1, ' + opacity + ')');
+    }
+    
+    // Si la couleur est au format hex, convertir en rgba
     if (color.startsWith('#')) {
-        // Convertir hex en rgba
-        const r = parseInt(color.slice(1, 3), 16);
-        const g = parseInt(color.slice(3, 5), 16);
-        const b = parseInt(color.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-    } else if (color.startsWith('rgba')) {
-        // Remplacer l'opacité dans rgba
-        return color.replace(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)/, `rgba($1, $2, $3, ${opacity})`);
-    } else if (color.startsWith('rgb')) {
-        // Convertir rgb en rgba
-        return color.replace(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/, `rgba($1, $2, $3, ${opacity})`);
+        let r, g, b;
+        
+        // Format #RGB ou #RRGGBB
+        if (color.length === 4) {
+            r = parseInt(color[1] + color[1], 16);
+            g = parseInt(color[2] + color[2], 16);
+            b = parseInt(color[3] + color[3], 16);
+        } else {
+            r = parseInt(color.substring(1, 3), 16);
+            g = parseInt(color.substring(3, 5), 16);
+            b = parseInt(color.substring(5, 7), 16);
+        }
+        
+        return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + opacity + ')';
     }
     
-    return color;
+    // Si le format de couleur n'est pas reconnu, retourner noir avec l'opacité spécifiée
+    return 'rgba(0, 0, 0, ' + opacity + ')';
 }
