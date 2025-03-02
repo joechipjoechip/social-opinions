@@ -33,6 +33,10 @@
       "resources": [
         "js/utils/helpers.js",
         "js/models/reddit-analysis.model.js",
+        "js/core/*.js",
+        "js/ui/*.js",
+        "js/components/*.js",
+        "js/extractors/*.js",
         "node_modules/d3/dist/*"
       ],
       "matches": ["*://*.reddit.com/*", "<all_urls>"]

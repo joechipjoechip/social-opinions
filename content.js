@@ -201,17 +201,12 @@ function extractPostMetadata() {
  */
 function createErrorResponse(error) {
     return {
-        error: error.message,
-        postTitle: document.title || 'Titre non disponible',
-        postContent: '',
-        comments: [{
-            text: "Erreur lors de l'extraction des commentaires: " + error.message,
-            score: 0,
-            author: 'Système',
-            truncatedText: "Erreur lors de l'extraction des commentaires: " + error.message
-        }],
-        url: window.location.href,
-        commentCount: 1
+        success: false,
+        error: {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        }
     };
 }
 
@@ -222,61 +217,59 @@ function createErrorResponse(error) {
 function getPageContent() {
     try {
         console.log('Début de l\'extraction du contenu Reddit');
+        
+        // Extraction des métadonnées
+        const metadata = extractPostMetadata();
+        
+        // Extraction des commentaires avec différentes méthodes
         let comments = [];
         
-        // Extraction des commentaires avec différentes approches
-        console.log('Extraction des commentaires...');
-        
-        // Approche 1: Rechercher les éléments shreddit-comment
-        comments = extractShredditComments();
-        
-        // Si aucun commentaire n'a été trouvé, essayer d'autres approches
-        if (comments.length === 0) {
-            // Approche 2: Rechercher les éléments avec slot="comment-content"
-            console.log('Tentative d\'extraction via slot="comment-content"');
-            comments = extractCommentSlots();
-            
-            if (comments.length === 0) {
-                // Approche 3: Rechercher les éléments avec la classe .Comment
-                console.log('Tentative d\'extraction via .Comment');
-                comments = extractOldComments();
-                
-                if (comments.length === 0) {
-                    // Approche 4: Recherche générique de texte
-                    console.log('Tentative d\'extraction générique de texte');
-                    comments = extractGenericText();
+        // Méthode 1: Shreddit Comments
+        const shredditComments = extractShredditComments();
+        if (shredditComments.length > 0) {
+            console.log(`Extraction réussie avec Shreddit Comments: ${shredditComments.length} commentaires`);
+            comments = shredditComments;
+        } else {
+            // Méthode 2: Comment Slots
+            const slotComments = extractCommentSlots();
+            if (slotComments.length > 0) {
+                console.log(`Extraction réussie avec Comment Slots: ${slotComments.length} commentaires`);
+                comments = slotComments;
+            } else {
+                // Méthode 3: Old Comments
+                const oldComments = extractOldComments();
+                if (oldComments.length > 0) {
+                    console.log(`Extraction réussie avec Old Comments: ${oldComments.length} commentaires`);
+                    comments = oldComments;
+                } else {
+                    // Méthode 4: Generic Text (fallback)
+                    const genericComments = extractGenericText();
+                    console.log(`Extraction générique: ${genericComments.length} paragraphes`);
+                    comments = genericComments;
                 }
             }
         }
         
-        // Vérifier si des commentaires ont été trouvés
-        if (comments.length === 0) {
-            console.warn('Aucun commentaire trouvé sur la page');
-            // Ajouter un commentaire fictif pour éviter les erreurs
-            comments.push({
-                text: "Aucun commentaire n'a été trouvé sur cette page. Assurez-vous d'être sur une page de discussion Reddit avec des commentaires visibles.",
-                score: 0,
-                author: 'Système',
-                truncatedText: "Aucun commentaire n'a été trouvé sur cette page."
-            });
+        // Trier les commentaires par score (descendant)
+        comments.sort((a, b) => (b.score || 0) - (a.score || 0));
+        
+        // Limiter le nombre de commentaires pour éviter les problèmes de performance
+        const MAX_COMMENTS = 150;
+        if (comments.length > MAX_COMMENTS) {
+            console.log(`Limitation du nombre de commentaires à ${MAX_COMMENTS}`);
+            comments = comments.slice(0, MAX_COMMENTS);
         }
         
-        // Tri des commentaires par score décroissant
-        comments.sort((a, b) => b.score - a.score);
-        
-        // Extraction du titre et du contenu du post
-        const metadata = extractPostMetadata();
-        
-        console.log(`Extraction terminée: ${comments.length} commentaires, titre: "${truncateText(metadata.postTitle, 30)}"`);
-        
         return {
-            ...metadata,
+            success: true,
+            postTitle: metadata.postTitle,
+            postContent: metadata.postContent,
+            url: metadata.url,
             comments: comments,
             commentCount: comments.length
         };
     } catch (error) {
         console.error('Erreur lors de l\'extraction du contenu:', error);
-        // Retourner un objet avec une erreur mais toujours utilisable
         return createErrorResponse(error);
     }
 }
@@ -286,21 +279,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'getContent') {
         console.log('Réception de la demande d\'extraction de contenu');
         
-        try {
-            const content = getPageContent();
-            console.log('Envoi du contenu extrait au popup');
-            sendResponse({ content: content });
-        } catch (error) {
-            console.error('Erreur lors de l\'extraction:', error);
-            sendResponse({ 
-                error: error.message,
-                content: createErrorResponse(error)
-            });
-        }
-        
-        return true; // Important pour indiquer que la réponse sera envoyée de manière asynchrone
+        // Extraction du contenu et envoi de la réponse
+        const content = getPageContent();
+        sendResponse(content);
     }
+    
+    // Retourner true pour indiquer que la réponse sera envoyée de manière asynchrone
+    return true;
 });
-
-// Journalisation pour débogage
-console.log('Reddit Opinions: Script d\'extraction chargé');
