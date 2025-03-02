@@ -1,0 +1,152 @@
+/**
+ * Styles pour les légendes personnalisées des graphiques
+ */
+
+/* Conteneur principal de légende */
+.custom-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: center;
+}
+
+/* Conteneur de légende avec moins de 3 éléments */
+.custom-legend.less-than-three {
+    justify-content: flex-start;
+}
+
+/* Élément individuel de légende */
+.custom-legend-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+    max-width: 180px;
+}
+
+.custom-legend-item:hover {
+    background-color: #f1f5f9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Conteneur d'élément de légende */
+.legend-item-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* En-tête d'élément de légende */
+.custom-legend-item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+/* Carré de couleur */
+.legend-color-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 6px;
+}
+
+/* Valeur de légende */
+.legend-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+/* Texte de légende */
+.legend-text {
+    font-size: 11px;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
+
+/* Texte de légende en gras */
+.legend-text-bold {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+    margin-bottom: 4px;
+}
+
+/* Petit texte de légende */
+.legend-text-small {
+    font-size: 10px;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+/* Élément de légende caché */
+.legend-item-hidden {
+    opacity: 0.5;
+}
+
+.legend-item-hidden .legend-color-box {
+    opacity: 0.3;
+}
+
+/* Légende divergente pour les graphiques de controverse */
+.diverging-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.diverging-legend-item {
+    display: flex;
+    align-items: center;
+}
+
+/* Styles responsifs */
+@media (max-width: 768px) {
+    .custom-legend {
+        justify-content: flex-start;
+    }
+    
+    .custom-legend-item {
+        min-width: 100px;
+        max-width: 150px;
+    }
+    
+    .legend-text, .legend-text-bold {
+        max-width: 130px;
+    }
+}
+
+@media (max-width: 480px) {
+    .custom-legend {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .custom-legend-item {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .legend-text, .legend-text-bold, .legend-text-small {
+        max-width: 100%;
+    }
+}
