@@ -18,7 +18,7 @@ export class Visualizations {
         this.colors = {
             primary: '#00DC82',    // Vert NuxtUI
             secondary: '#3B82F6',  // Bleu
-            tertiary: '#10B981',   // Vert secondaire
+            tertiary: '#9333EA',   // Violet stylé (remplace le vert secondaire #10B981)
             quaternary: '#F59E0B', // Orange
             quinary: '#8B5CF6',    // Violet
             senary: '#EC4899'      // Rose
@@ -582,7 +582,7 @@ export class Visualizations {
         const colors = [
             this.colors.primary,    // Vert
             this.colors.secondary,  // Bleu
-            this.colors.tertiary,   // Vert secondaire
+            this.colors.tertiary,   // Violet stylé
             this.colors.quaternary, // Orange
             this.colors.quinary,    // Violet
             this.colors.senary,     // Rose

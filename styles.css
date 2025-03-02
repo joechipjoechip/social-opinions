@@ -2,22 +2,22 @@
     /* Palette de couleurs NuxtUI */
     --primary-color: #00DC82; /* Vert NuxtUI */
     --primary-hover: #00c371;
-    --secondary-color: #10B981; /* Vert secondaire */
-    --secondary-hover: #0ea271;
+    --secondary-color: #3B82F6; /* Bleu au lieu de vert secondaire */
+    --secondary-hover: #2563EB;
     --background-color: #f9fafb;
     --card-background: #ffffff;
     --text-color: #1F2937; /* Gris foncé pour le texte */
     --text-secondary: #6B7280; /* Gris moyen pour texte secondaire */
     --border-color: #E5E7EB;
     --error-color: #EF4444;
-    --success-color: #10B981;
+    --success-color: #9333EA; /* Violet stylé au lieu de #10B981 */
     --warning-color: #F59E0B;
     --info-color: #3B82F6;
     
     /* Couleurs pour les graphiques */
     --chart-color-1: #00DC82;
     --chart-color-2: #3B82F6;
-    --chart-color-3: #10B981;
+    --chart-color-3: #9333EA; /* Violet stylé au lieu de #10B981 */
     --chart-color-4: #F59E0B;
     --chart-color-5: #8B5CF6;
     --chart-color-6: #EC4899;
@@ -569,14 +569,14 @@ label {
     left: 50%;
     transform: translateX(-50%);
     background-color: var(--success-background);
-    color: var(--success-color);
+    color: #9333EA; /* Violet stylé au lieu de #10B981 */
     padding: var(--spacing-md);
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
     z-index: 1000;
     display: flex;
     align-items: center;
-    border: 1px solid var(--success-color);
+    border: 1px solid #9333EA; /* Violet stylé au lieu de #10B981 */
 }
 
 .success-icon {
@@ -604,8 +604,8 @@ label {
 }
 
 .badge-success {
-    background-color: rgba(16, 185, 129, 0.1);
-    color: var(--success-color);
+    background-color: rgba(147, 51, 234, 0.1); /* Violet stylé au lieu de #10B981 */
+    color: #9333EA; /* Violet stylé au lieu de #10B981 */
 }
 
 .badge-warning {
@@ -770,7 +770,7 @@ hr {
 }
 
 .sentiment.positive {
-    color: var(--success-color);
+    color: #9333EA; /* Violet stylé au lieu de #10B981 */
 }
 
 .sentiment.negative {
