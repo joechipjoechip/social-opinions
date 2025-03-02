@@ -1,0 +1,128 @@
+/* Styles pour les sections rétractables */
+
+/* Section rétractable */
+.collapsible-section {
+    position: relative;
+    transition: margin 0.3s ease;
+}
+
+/* En-tête de section rétractable */
+.collapsible-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    z-index: 1;
+}
+
+/* Bouton de bascule */
+.collapse-toggle {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    margin-left: var(--spacing-sm);
+}
+
+.collapse-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.collapse-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Icône de bascule */
+.collapse-icon {
+    display: inline-block;
+    transition: transform 0.3s ease;
+    font-size: 10px;
+}
+
+/* Contenu rétractable */
+.collapsible-content {
+    overflow: hidden;
+    transition: height 0.3s ease;
+}
+
+/* Section pliée */
+.collapsible-section[data-collapsed="true"] .collapsible-content {
+    height: 0;
+}
+
+/* Ajustement de la marge pour les sections pliées */
+.collapsible-section[data-collapsed="true"] {
+    margin-bottom: var(--spacing-md);
+}
+
+/* Effet de survol pour l'en-tête */
+.collapsible-header:hover {
+    opacity: 0.9;
+}
+
+/* Wrapper pour le contenu */
+.collapsible-wrapper {
+    overflow: hidden;
+}
+
+/* Contrôles globaux pour plier/déplier toutes les sections */
+.collapse-controls {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    justify-content: flex-end;
+}
+
+.collapse-controls button {
+    font-size: 12px;
+    padding: 4px 8px;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.collapse-controls button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Ajustements pour les visualisations */
+.visualization-container.collapsible-section .visualization-header {
+    padding-right: var(--spacing-md);
+    border-bottom: none;
+}
+
+.visualization-container.collapsible-section[data-collapsed="false"] .visualization-header {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.visualization-container.collapsible-section .chart-wrapper,
+.visualization-container.collapsible-section .custom-legend {
+    padding: var(--spacing-md);
+}
+
+/* Ajustements pour les stat-cards */
+.stat-card.collapsible-section h3 {
+    margin-bottom: 0;
+    padding: var(--spacing-sm) 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-card.collapsible-section[data-collapsed="false"] h3 {
+    margin-bottom: var(--spacing-sm);
+}

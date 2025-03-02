@@ -12,6 +12,7 @@
     <script src="node_modules/chartjs-plugin-datalabels/dist/chartjs-plugin-datalabels.min.js"></script>
     <script src="js/test-data.js"></script>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/collapsible-sections.css">
 </head>
 <body>
     <header class="app-header">
@@ -42,6 +43,11 @@
           <h1 class="popup-title">Reddit Opinions</h1>
           <div class="popup-subtitle">Analyse des opinions dans les commentaires</div>
         </header>
+        
+        <div class="collapse-controls">
+            <button id="expandAllBtn">Tout déplier</button>
+            <button id="collapseAllBtn">Tout plier</button>
+        </div>
         
         <div id="content-container">
             <div id="opinionVisualization" class="visualization-container">

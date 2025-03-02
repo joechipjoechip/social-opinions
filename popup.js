@@ -4,11 +4,13 @@ import GeminiService from './js/services/gemini.service.js';
 import { Visualizations } from './js/visualizations.js';
 import { RedditAnalysis } from './js/models/reddit-analysis.model.js';
 import { formatNumber, truncateText, debounce } from './js/utils/helpers.js';
+import { CollapsibleSections } from './js/ui/index.js';
 
 // Initialisation des composants
 const geminiService = new GeminiService();
 const visualizations = new Visualizations();
 let currentAnalysis = null;
+let collapsibleSections = null;
 
 /**
  * Affiche la vue d'ensemble de l'analyse
@@ -295,7 +297,27 @@ document.addEventListener('DOMContentLoaded', async function() {
     const loadingDiv = document.getElementById('loading');
     const errorDiv = document.getElementById('error');
     const exportBtn = document.getElementById('exportBtn');
+    const testDevUIBtn = document.getElementById('testDevUIBtn');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
     const settingsBtn = document.getElementById('settingsBtn');
+    const expandAllBtn = document.getElementById('expandAllBtn');
+    const collapseAllBtn = document.getElementById('collapseAllBtn');
+    
+    // Initialiser les sections rétractables
+    collapsibleSections = new CollapsibleSections();
+    
+    // Ajouter les écouteurs d'événements pour les boutons de contrôle des sections
+    if (expandAllBtn) {
+        expandAllBtn.addEventListener('click', () => {
+            collapsibleSections.expandAll();
+        });
+    }
+    
+    if (collapseAllBtn) {
+        collapseAllBtn.addEventListener('click', () => {
+            collapsibleSections.collapseAll();
+        });
+    }
     
     // Désactiver le bouton d'exportation jusqu'à ce qu'une analyse soit disponible
     if (exportBtn) {
@@ -483,6 +505,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             displayTopComments(currentAnalysis);
             displayControversialPoints(currentAnalysis);
             
+            // Réinitialiser les sections rétractables après le chargement des données
+            if (collapsibleSections) {
+                // Réinitialiser les sections existantes
+                collapsibleSections = new CollapsibleSections();
+            }
+            
             // Sauvegarder l'analyse
             await saveAnalysisToStorage(currentAnalysis);
             
@@ -603,7 +631,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     summarizeBtn.addEventListener('click', debouncedAnalyze);
     
     // Gestion du bouton "Test Dev UI"
-    const testDevUIBtn = document.getElementById('testDevUIBtn');
     if (testDevUIBtn) {
         testDevUIBtn.addEventListener('click', () => {
             // Utiliser les données de test définies dans test-data.js
@@ -652,7 +679,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
     
     // Bouton de vidage du cache
-    const clearCacheBtn = document.getElementById('clearCacheBtn');
     clearCacheBtn?.addEventListener('click', async () => {
         try {
             // Utiliser le Service Worker pour vider le cache
