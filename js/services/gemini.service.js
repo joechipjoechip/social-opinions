@@ -13,6 +13,12 @@ class GeminiService {
         
         // Charger le cache depuis le stockage local
         this._loadCacheFromStorage();
+        
+        // Paramètre de troncature de texte (valeur par défaut)
+        this.truncateTextToOptimizePerformances = true;
+        
+        // Charger le paramètre de troncature depuis le stockage local
+        this._loadTruncateTextSetting();
     }
 
     setMaxComments(limit) {
@@ -254,7 +260,15 @@ class GeminiService {
                         "contents": [{
                             "parts": [{
                                 "text": `Analyse les commentaires Reddit suivants en te concentrant sur la diversité des opinions et leurs popularités respectives en te basant sur le nombre de votes pour chaque opinion. Propose une analyse sensible et sémantiquement valide. Regroupe les opinions similaires dans les points de consensus. Mets en évidence les opinions opposées dans les points de frictions. Fais en sorte que les points de consensus et points de frictions apportent une contribution significative à l'analyse.
-IMPORTANT: Ta réponse doit être un objet JSON valide, sans aucun texte avant ou après. Utilise uniquement des guillemets doubles pour les chaînes.
+
+                                IMPORTANT:
+- Pour les frictionPoints, assure-toi que chaque sujet contient EXACTEMENT deux opinions clairement opposées
+- Les stances doivent être des phrases courtes (max 10 mots) et clairement opposées (pour/contre)
+- Les votes doivent toujours être des nombres positifs (ne pas utiliser de valeurs négatives)
+- Identifie les sujets de désaccord les plus importants et les plus polarisants
+- Chaque sujet doit être spécifique et concret, pas vague ou général
+
+IMPORTANT ET CRUCIAL: Ta réponse doit absolument être un objet JSON valide, sans aucun texte avant ou après. C'est très important ! Je veux un JSON Valide absolument. Utilise uniquement des guillemets doubles pour les chaînes.
 
 Titre: ${pageContent.postTitle}
 
@@ -311,13 +325,7 @@ Format de sortie attendu:
     }
   ]
 }
-
-IMPORTANT:
-- Pour les frictionPoints, assure-toi que chaque sujet contient EXACTEMENT deux opinions clairement opposées
-- Les stances doivent être des phrases courtes (max 10 mots) et clairement opposées (pour/contre)
-- Les votes doivent toujours être des nombres positifs (ne pas utiliser de valeurs négatives)
-- Identifie les sujets de désaccord les plus importants et les plus polarisants
-- Chaque sujet doit être spécifique et concret, pas vague ou général`
+`
                             }]
                         }],
                         "generationConfig": {
@@ -549,7 +557,9 @@ IMPORTANT:
                                                 author: author,
                                                 id: id,
                                                 depth: depth,
-                                                truncatedText: commentText.length > 100 ? commentText.substring(0, 100) + '...' : commentText
+                                                truncatedText: this.truncateTextToOptimizePerformances ? 
+                                                    (commentText.length > 100 ? commentText.substring(0, 100) + '...' : commentText) : 
+                                                    commentText
                                             });
                                         } catch (commentError) {
                                             console.warn('Erreur lors de l\'extraction d\'un commentaire:', commentError);
@@ -580,7 +590,7 @@ IMPORTANT:
                                                         text: commentText,
                                                         score: score,
                                                         author: author,
-                                                        truncatedText: commentText.length > 100 ? commentText.substring(0, 100) + '...' : commentText
+                                                        truncatedText: commentText
                                                     });
                                                 }
                                             } catch (slotError) {
@@ -618,7 +628,7 @@ IMPORTANT:
                                                         text: commentText,
                                                         score: score,
                                                         author: author,
-                                                        truncatedText: commentText.length > 100 ? commentText.substring(0, 100) + '...' : commentText
+                                                        truncatedText: commentText
                                                     });
                                                 } catch (oldCommentError) {
                                                     console.warn('Erreur lors de l\'extraction d\'un ancien commentaire:', oldCommentError);
@@ -643,7 +653,7 @@ IMPORTANT:
                                                                 text: text,
                                                                 score: 0, // Score inconnu
                                                                 author: 'Utilisateur ' + index,
-                                                                truncatedText: text.length > 100 ? text.substring(0, 100) + '...' : text
+                                                                truncatedText: text
                                                             });
                                                         }
                                                     } catch (paragraphError) {
@@ -779,6 +789,26 @@ IMPORTANT:
         this.cache.clear();
         await this._saveCacheToStorage();
         console.log('Cache effacé');
+    }
+
+    /**
+     * Charge le paramètre de troncature de texte depuis le stockage local
+     * @private
+     */
+    async _loadTruncateTextSetting() {
+        try {
+            const data = await new Promise(resolve => {
+                chrome.storage.local.get('truncateTextToOptimizePerformances', data => {
+                    resolve(data.truncateTextToOptimizePerformances);
+                });
+            });
+            
+            this.truncateTextToOptimizePerformances = data !== undefined ? data : true;
+            console.log(`Paramètre de troncature de texte chargé: ${this.truncateTextToOptimizePerformances}`);
+        } catch (error) {
+            console.error('Erreur lors du chargement du paramètre de troncature de texte:', error);
+            this.truncateTextToOptimizePerformances = true;
+        }
     }
 }
 

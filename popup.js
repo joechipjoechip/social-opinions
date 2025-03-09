@@ -298,6 +298,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const errorDiv = document.getElementById('error');
     const exportBtn = document.getElementById('exportBtn');
     const testDevUIBtn = document.getElementById('testDevUIBtn');
+    const truncateTextBtn = document.getElementById('truncateTextBtn');
     const clearCacheBtn = document.getElementById('clearCacheBtn');
     const settingsBtn = document.getElementById('settingsBtn');
     const expandAllBtn = document.getElementById('expandAllBtn');
@@ -630,6 +631,38 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Attacher les écouteurs d'événements
     summarizeBtn.addEventListener('click', debouncedAnalyze);
     
+    // Gestion du bouton de troncature de texte
+    if (truncateTextBtn) {
+        // Récupérer l'état actuel de la troncature
+        chrome.storage.local.get('truncateTextToOptimizePerformances', (data) => {
+            const truncateText = data.truncateTextToOptimizePerformances !== undefined ? 
+                data.truncateTextToOptimizePerformances : true;
+            
+            // Mettre à jour l'apparence du bouton selon l'état
+            updateTruncateButtonAppearance(truncateTextBtn, truncateText);
+            
+            // Ajouter l'écouteur d'événement pour basculer l'état
+            truncateTextBtn.addEventListener('click', () => {
+                // Inverser l'état actuel
+                const newTruncateState = !truncateText;
+                
+                // Sauvegarder le nouvel état
+                chrome.storage.local.set({ truncateTextToOptimizePerformances: newTruncateState }, () => {
+                    // Mettre à jour l'apparence du bouton
+                    updateTruncateButtonAppearance(truncateTextBtn, newTruncateState);
+                    
+                    // Afficher un message de confirmation
+                    showSuccess(`Troncature de texte ${newTruncateState ? 'activée' : 'désactivée'}`);
+                    
+                    // Recharger la page pour appliquer les changements
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                });
+            });
+        });
+    }
+    
     // Gestion du bouton "Test Dev UI"
     if (testDevUIBtn) {
         testDevUIBtn.addEventListener('click', () => {
@@ -734,3 +767,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 });
+
+function updateTruncateButtonAppearance(button, truncateText) {
+    if (truncateText) {
+        button.textContent = 'Troncature de texte activée';
+        button.classList.add('active');
+    } else {
+        button.textContent = 'Troncature de texte désactivée';
+        button.classList.remove('active');
+    }
+}
