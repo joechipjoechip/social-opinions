@@ -4,13 +4,14 @@ import GeminiService from './js/services/gemini.service.js';
 import { Visualizations } from './js/visualizations.js';
 import { RedditAnalysis } from './js/models/reddit-analysis.model.js';
 import { formatNumber, truncateText, debounce } from './js/utils/helpers.js';
-import { CollapsibleSections } from './js/ui/index.js';
+import { CollapsibleSections, CommentHierarchy } from './js/ui/index.js';
 
 // Initialisation des composants
 const geminiService = new GeminiService();
 const visualizations = new Visualizations();
 let currentAnalysis = null;
 let collapsibleSections = null;
+let commentHierarchy = null;
 
 /**
  * Affiche la vue d'ensemble de l'analyse
@@ -181,6 +182,45 @@ function showSuccess(message) {
 }
 
 /**
+ * Affiche la hiérarchie des commentaires
+ * @param {RedditAnalysis} data - Données d'analyse
+ */
+function displayCommentHierarchy(data) {
+    const hierarchyContainer = document.getElementById('commentHierarchyContent');
+    
+    if (!hierarchyContainer) {
+        console.error("Conteneur de hiérarchie des commentaires non trouvé");
+        return;
+    }
+    
+    if (!data || (!data.hierarchicalComments && !data.content?.hierarchicalComments)) {
+        hierarchyContainer.innerHTML = '<p class="error">Aucune donnée hiérarchique disponible</p>';
+        return;
+    }
+    
+    // Utiliser les données hiérarchiques directes ou celles du content
+    const hierarchicalComments = data.hierarchicalComments || data.content?.hierarchicalComments || [];
+    
+    // Si aucune donnée hiérarchique n'est disponible
+    if (!Array.isArray(hierarchicalComments) || hierarchicalComments.length === 0) {
+        hierarchyContainer.innerHTML = '<p class="info-message">Aucun commentaire hiérarchique disponible</p>';
+        return;
+    }
+    
+    // S'assurer que l'instance de CommentHierarchy est initialisée
+    if (!commentHierarchy) {
+        commentHierarchy = new CommentHierarchy(hierarchyContainer);
+    }
+    
+    // Rendre la hiérarchie
+    const hierarchyData = {
+        hierarchicalComments: hierarchicalComments
+    };
+    
+    commentHierarchy.render(hierarchyData);
+}
+
+/**
  * Sauvegarde l'analyse actuelle dans le stockage local
  * @param {RedditAnalysis} analysis - Données d'analyse
  */
@@ -307,6 +347,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Initialiser les sections rétractables
     collapsibleSections = new CollapsibleSections();
+    
+    // Initialiser la hiérarchie des commentaires
+    const hierarchyContainer = document.getElementById('commentHierarchyContent');
+    if (hierarchyContainer) {
+        commentHierarchy = new CommentHierarchy(hierarchyContainer);
+    }
     
     // Ajouter les écouteurs d'événements pour les boutons de contrôle des sections
     if (expandAllBtn) {
@@ -515,6 +561,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             displayOverview(currentAnalysis);
             displayTopComments(currentAnalysis);
             displayControversialPoints(currentAnalysis);
+            displayCommentHierarchy(currentAnalysis);
             
             // Réinitialiser les sections rétractables après le chargement des données
             if (collapsibleSections) {
@@ -710,6 +757,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 displayOverview(testAnalysis);
                 displayTopComments(testAnalysis);
                 displayControversialPoints(testAnalysis);
+                displayCommentHierarchy(testAnalysis);
                 
                 // Créer les visualisations
                 visualizations.createOpinionClusterChart(testAnalysis);

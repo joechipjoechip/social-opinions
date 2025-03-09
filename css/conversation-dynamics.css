@@ -1,0 +1,143 @@
+/* Styles pour la visualisation des dynamiques de conversation */
+
+.conversation-dynamics-container {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.dynamic-item {
+    margin-bottom: 15px;
+    padding: 12px;
+    border-radius: 4px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    border-left: 4px solid #ccc;
+}
+
+/* Classes pour les différents motifs de réponse */
+.pattern-agreement {
+    border-left-color: #4CAF50;
+}
+
+.pattern-disagreement {
+    border-left-color: #F44336;
+}
+
+.pattern-mixed {
+    border-left-color: #FF9800;
+}
+
+.pattern-neutral {
+    border-left-color: #9E9E9E;
+}
+
+.dynamic-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.dynamic-topic {
+    margin: 0;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.response-pattern {
+    font-size: 0.85em;
+    padding: 3px 8px;
+    border-radius: 12px;
+    background-color: #f0f0f0;
+}
+
+.pattern-agreement .response-pattern {
+    background-color: #E8F5E9;
+    color: #2E7D32;
+}
+
+.pattern-disagreement .response-pattern {
+    background-color: #FFEBEE;
+    color: #C62828;
+}
+
+.pattern-mixed .response-pattern {
+    background-color: #FFF3E0;
+    color: #E65100;
+}
+
+.dynamic-content {
+    font-size: 0.95em;
+    line-height: 1.5;
+}
+
+.parent-opinion, .evolution-description {
+    margin-bottom: 10px;
+}
+
+.representative-exchange {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+}
+
+.parent-comment, .response-comments {
+    margin-bottom: 10px;
+}
+
+.comment-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.comment-text {
+    padding: 8px;
+    background-color: #fff;
+    border-radius: 4px;
+    border: 1px solid #eee;
+    font-size: 0.9em;
+}
+
+.response-item {
+    margin-top: 8px;
+    margin-left: 15px;
+    position: relative;
+}
+
+.response-item::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -15px;
+    width: 10px;
+    height: 10px;
+    border-left: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .dynamic-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .response-pattern {
+        margin-top: 5px;
+    }
+    
+    .response-item {
+        margin-left: 10px;
+    }
+}

@@ -740,6 +740,10 @@ async function getPageContent() {
             comments = comments.slice(0, options.maxComments);
         }
         
+        // Construction de la hiérarchie des commentaires
+        const hierarchicalComments = buildCommentHierarchy(comments);
+        console.log(`Hiérarchie des commentaires construite avec ${hierarchicalComments.length} commentaires de premier niveau`);
+        
         return {
             success: true,
             postTitle: metadata.postTitle,
@@ -747,12 +751,86 @@ async function getPageContent() {
             url: metadata.url,
             platform: platform,
             comments: comments,
-            commentCount: comments.length
+            commentCount: comments.length,
+            hierarchicalComments: hierarchicalComments
         };
     } catch (error) {
         console.error('Erreur lors de l\'extraction du contenu:', error);
         return createErrorResponse(error);
     }
+}
+
+/**
+ * Construit une hiérarchie de commentaires basée sur l'attribut depth
+ * @param {Array} comments - Tableau de commentaires plat
+ * @returns {Array} Tableau hiérarchique de commentaires
+ */
+function buildCommentHierarchy(comments) {
+    if (!comments || !Array.isArray(comments) || comments.length === 0) {
+        return [];
+    }
+    
+    // Cloner les commentaires pour ne pas modifier les originaux
+    const commentsCopy = JSON.parse(JSON.stringify(comments));
+    
+    // Créer un index des commentaires par ID pour les retrouver rapidement
+    const commentsById = {};
+    commentsCopy.forEach(comment => {
+        if (comment.id) {
+            commentsById[comment.id] = comment;
+            // Initialiser le tableau des réponses
+            comment.replies = [];
+        }
+    });
+    
+    // Commentaires de premier niveau (depth = 0 ou undefined)
+    const rootComments = [];
+    
+    // Si aucun commentaire n'a d'ID ou de depth, simuler une structure plate
+    let hasValidStructure = commentsCopy.some(c => c.id && (c.depth !== undefined));
+    
+    if (!hasValidStructure) {
+        console.log('Aucune structure hiérarchique détectée, simulation d\'une hiérarchie simple');
+        // Créer une hiérarchie simple où tous les commentaires sont au premier niveau
+        return commentsCopy.map(comment => {
+            return { ...comment, replies: [] };
+        });
+    }
+    
+    // Trier les commentaires par depth pour s'assurer que les parents sont traités avant les enfants
+    commentsCopy.sort((a, b) => (a.depth || 0) - (b.depth || 0));
+    
+    // Parcourir les commentaires pour construire la hiérarchie
+    commentsCopy.forEach(comment => {
+        // Si depth est undefined ou 0, c'est un commentaire racine
+        if (comment.depth === undefined || comment.depth === 0) {
+            rootComments.push(comment);
+            return;
+        }
+        
+        // Chercher le parent le plus proche (celui avec une profondeur directement inférieure)
+        const currentDepth = comment.depth;
+        let potentialParents = commentsCopy.filter(c => 
+            c.id !== comment.id && 
+            (c.depth === currentDepth - 1)
+        );
+        
+        // Trier les parents potentiels par ordre d'apparition dans la page (plus le commentaire est haut, plus il est ancien)
+        potentialParents.sort((a, b) => commentsCopy.indexOf(a) - commentsCopy.indexOf(b));
+        
+        if (potentialParents.length > 0) {
+            // Prendre le dernier parent potentiel (le plus proche dans le thread)
+            const parent = potentialParents[potentialParents.length - 1];
+            if (parent && parent.replies) {
+                parent.replies.push(comment);
+            }
+        } else {
+            // Si aucun parent n'est trouvé, ajouter au niveau racine
+            rootComments.push(comment);
+        }
+    });
+    
+    return rootComments;
 }
 
 // Écouteur de messages pour communiquer avec le popup

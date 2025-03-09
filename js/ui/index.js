@@ -9,3 +9,4 @@ export { ChartFactory } from './chart-factory.js';
 export * as ChartLegends from './chart-legends.js';
 export * as ChartTypes from './chart-types.js';
 export { CollapsibleSections } from './collapsible-sections.js';
+export { CommentHierarchy } from './comment-hierarchy.js';

@@ -1,0 +1,184 @@
+/* Styles pour la visualisation hiérarchique des commentaires */
+
+.hierarchical-comments {
+    max-height: 500px;
+    overflow-y: auto;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+}
+
+.comment-item {
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+/* Indentation basée sur la profondeur */
+.depth-0 {
+    margin-left: 0;
+}
+
+.depth-1 {
+    margin-left: 20px;
+    border-left: 2px solid #e0e0e0;
+}
+
+.depth-2 {
+    margin-left: 40px;
+    border-left: 2px solid #d0d0d0;
+}
+
+.depth-3 {
+    margin-left: 60px;
+    border-left: 2px solid #c0c0c0;
+}
+
+.depth-4 {
+    margin-left: 80px;
+    border-left: 2px solid #b0b0b0;
+}
+
+.depth-5, .depth-6, .depth-7, .depth-8, .depth-9 {
+    margin-left: 100px;
+    border-left: 2px solid #a0a0a0;
+}
+
+/* En-tête du commentaire */
+.comment-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+.comment-author {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.comment-score {
+    color: #666;
+    font-size: 0.85em;
+}
+
+/* Contenu du commentaire */
+.comment-content {
+    margin-left: 20px;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.comment-content p {
+    margin: 0;
+    padding: 0;
+}
+
+/* Bouton de bascule pour les réponses */
+.toggle-replies {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-right: 8px;
+    padding: 2px 5px;
+    color: #555;
+    transition: all 0.2s ease;
+}
+
+.toggle-replies:hover {
+    color: #000;
+}
+
+.no-replies {
+    display: inline-block;
+    width: 16px;
+    margin-right: 8px;
+}
+
+/* Conteneur des réponses */
+.comment-replies {
+    display: none;
+    margin-top: 5px;
+    margin-left: 20px;
+}
+
+.comment-replies.expanded {
+    display: block;
+}
+
+/* Classes de score */
+.score-very-high {
+    border-left: 3px solid #4CAF50;
+}
+
+.score-high {
+    border-left: 3px solid #8BC34A;
+}
+
+.score-medium {
+    border-left: 3px solid #CDDC39;
+}
+
+.score-low {
+    border-left: 3px solid #FFEB3B;
+}
+
+.score-neutral {
+    border-left: 3px solid #E0E0E0;
+}
+
+/* Contrôles de section */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.section-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.section-controls button {
+    padding: 4px 8px;
+    font-size: 0.85em;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.section-controls button:hover {
+    background-color: #e0e0e0;
+}
+
+/* Message d'information */
+.info-message {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-left: 4px solid #6c757d;
+    color: #495057;
+    font-style: italic;
+    text-align: center;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .depth-1, .depth-2, .depth-3, .depth-4, .depth-5, .depth-6, .depth-7, .depth-8, .depth-9 {
+        margin-left: 10px;
+    }
+    
+    .comment-content {
+        margin-left: 10px;
+    }
+}
