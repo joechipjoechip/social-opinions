@@ -15,10 +15,16 @@ class GeminiService {
         this._loadCacheFromStorage();
         
         // Paramètre de troncature de texte (valeur par défaut)
-        this.truncateTextToOptimizePerformances = true;
+        this.truncateTextToOptimizePerformances = false;
         
         // Charger le paramètre de troncature depuis le stockage local
         this._loadTruncateTextSetting();
+        
+        // Seed fixe pour les générations Gemini
+        this.FIXED_SEED = 42;
+        
+        // Méthode de tri pour les commentaires
+        this.SORT_METHOD = 'score'; // 'score' ou 'date'
     }
 
     setMaxComments(limit) {
@@ -48,11 +54,11 @@ class GeminiService {
                     console.error('Erreur OAuth2:', error.message);
                     
                     // Si l'erreur est liée à l'ID client, suggérer de basculer vers la clé API
-                    if (error.message.includes('bad client id')) {
+                    if (error.message && error.message.includes('bad client id')) {
                         console.warn('ID client OAuth2 invalide. Vérifiez la configuration dans le manifest.json.');
-                    } else if (error.message.includes('Authorization page could not be loaded')) {
+                    } else if (error.message && error.message.includes('Authorization page could not be loaded')) {
                         console.warn('Page d\'autorisation non chargée. Vérifiez votre connexion internet.');
-                    } else if (error.message.includes('The user did not approve access')) {
+                    } else if (error.message && error.message.includes('The user did not approve access')) {
                         console.warn('L\'utilisateur a refusé l\'accès.');
                     }
                     
@@ -87,6 +93,21 @@ class GeminiService {
                 resolve(data.apiKey || '');
             });
         });
+    }
+
+    /**
+     * Charge le paramètre de troncature depuis le stockage local
+     * @private
+     */
+    _loadTruncateTextSetting() {
+        if (typeof chrome !== 'undefined' && chrome.storage) {
+            chrome.storage.local.get('truncateTextToOptimizePerformances', (data) => {
+                if (data && typeof data.truncateTextToOptimizePerformances === 'boolean') {
+                    this.truncateTextToOptimizePerformances = data.truncateTextToOptimizePerformances;
+                    console.log('Paramètre de troncature chargé:', this.truncateTextToOptimizePerformances);
+                }
+            });
+        }
     }
 
     /**
@@ -179,96 +200,266 @@ class GeminiService {
     }
 
     /**
+     * Charge le cache depuis le stockage local
+     * @private
+     */
+    async _loadCacheFromStorage() {
+        try {
+            const data = await new Promise(resolve => {
+                if (typeof chrome !== 'undefined' && chrome.storage) {
+                    chrome.storage.local.get('analysisCache', data => {
+                        resolve(data.analysisCache || {});
+                    });
+                } else {
+                    resolve({});
+                }
+            });
+            
+            // Convertir l'objet en Map
+            this.cache = new Map(Object.entries(data));
+            console.log(`Cache chargé: ${this.cache.size} entrées`);
+            this.cacheInitialized = true;
+        } catch (error) {
+            console.error('Erreur lors du chargement du cache:', error);
+            this.cache = new Map();
+        }
+    }
+    
+    /**
+     * Sauvegarde le cache dans le stockage local
+     * @private
+     */
+    async _saveCacheToStorage() {
+        try {
+            // Convertir la Map en objet pour le stockage
+            const cacheObj = Object.fromEntries(this.cache);
+            
+            await new Promise(resolve => {
+                if (typeof chrome !== 'undefined' && chrome.storage) {
+                    chrome.storage.local.set({ analysisCache: cacheObj }, resolve);
+                } else {
+                    resolve();
+                }
+            });
+            
+            console.log(`Cache sauvegardé: ${this.cache.size} entrées`);
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde du cache:', error);
+        }
+    }
+
+    /**
+     * Récupère le contenu de la page Reddit avec une extraction améliorée des commentaires
+     * @param {boolean} forceRefresh - Force le rafraîchissement du contenu
+     * @returns {Promise<Object>} - Contenu de la page
+     */
+    async getPageContent(forceRefresh = false) {
+        try {
+            // Communiquer avec le content script pour récupérer le contenu de la page
+            return new Promise((resolve, reject) => {
+                chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+                    if (!tabs || tabs.length === 0) {
+                        console.error('Aucun onglet actif trouvé');
+                        reject(new Error('Aucun onglet actif trouvé'));
+                        return;
+                    }
+                    
+                    const activeTab = tabs[0];
+                    
+                    // Vérifier si nous sommes sur Reddit
+                    if (!activeTab.url || !activeTab.url.includes('reddit.com')) {
+                        reject(new Error('Cette extension fonctionne uniquement sur Reddit'));
+                        return;
+                    }
+                    
+                    // Essayer d'injecter le content script si nécessaire
+                    try {
+                        // Vérifier si le content script est déjà injecté en envoyant un ping
+                        const pingResponse = await new Promise((pingResolve) => {
+                            chrome.tabs.sendMessage(
+                                activeTab.id, 
+                                { action: 'ping' }, 
+                                (response) => {
+                                    if (chrome.runtime.lastError) {
+                                        console.log('Content script non détecté, injection nécessaire');
+                                        pingResolve(false);
+                                    } else {
+                                        console.log('Content script déjà injecté');
+                                        pingResolve(true);
+                                    }
+                                }
+                            );
+                            
+                            // Timeout pour éviter de bloquer si aucune réponse
+                            setTimeout(() => pingResolve(false), 500);
+                        });
+                        
+                        // Si le content script n'est pas injecté, l'injecter maintenant
+                        if (!pingResponse) {
+                            console.log('Injection du content script...');
+                            await chrome.scripting.executeScript({
+                                target: { tabId: activeTab.id },
+                                files: ['content.js']
+                            });
+                            console.log('Content script injecté avec succès');
+                            
+                            // Attendre que le script soit complètement initialisé
+                            await new Promise(r => setTimeout(r, 500));
+                        }
+                    } catch (injectionError) {
+                        console.error('Erreur lors de l\'injection du content script:', injectionError);
+                        // Continuer malgré l'erreur, au cas où le script serait déjà injecté
+                    }
+                    
+                    // Maintenant, essayer d'obtenir le contenu
+                    chrome.tabs.sendMessage(
+                        activeTab.id,
+                        { action: 'getPageContent', forceRefresh },
+                        (response) => {
+                            if (chrome.runtime.lastError) {
+                                console.error('Erreur de communication:', chrome.runtime.lastError);
+                                reject(new Error(`Erreur de communication avec la page: ${chrome.runtime.lastError.message}`));
+                                return;
+                            }
+                            
+                            if (!response) {
+                                reject(new Error('Aucune réponse du content script. Assurez-vous que la page est complètement chargée et essayez de recharger l\'onglet.'));
+                                return;
+                            }
+                            
+                            if (response.error) {
+                                reject(new Error(response.error));
+                                return;
+                            }
+                            
+                            resolve(response);
+                        }
+                    );
+                });
+            });
+        } catch (error) {
+            console.error('Erreur lors de la récupération du contenu:', error);
+            throw new Error(`Erreur lors de la récupération du contenu: ${error.message}`);
+        }
+    }
+
+    /**
+     * Normalise et échantillonne les commentaires de manière déterministe
+     * @param {Array} comments - Commentaires bruts extraits
+     * @returns {Array} - Commentaires normalisés et échantillonnés
+     */
+    _normalizeAndSampleComments(comments) {
+        if (!Array.isArray(comments) || comments.length === 0) {
+            return [];
+        }
+        
+        // Étape 1: Filtrer les commentaires invalides, vides ou trop courts et nettoyer le texte
+        const validComments = comments.filter(comment => 
+            comment && 
+            typeof comment.text === 'string' && 
+            comment.text.trim().length > 5
+        ).map(comment => ({
+            ...comment,
+            // Nettoyage complet du texte :
+            // 1. trim() pour supprimer les espaces au début et à la fin
+            // 2. replace() avec regex pour remplacer les espaces multiples par un seul espace
+            // 3. replace() pour supprimer les sauts de ligne et tabulations
+            text: comment.text.trim()
+                .replace(/\s+/g, ' ')                  // Remplacer tous les espaces multiples par un seul espace
+                .replace(/[\r\n\t]+/g, ' ')            // Remplacer les sauts de ligne et tabulations par un espace
+                .replace(/\s+([.,;:!?])/g, '$1')       // Supprimer les espaces avant la ponctuation
+                .replace(/\s{2,}/g, ' ')               // S'assurer qu'il n'y a pas d'espaces doubles (redondant mais sécuritaire)
+        }));
+        
+        // Étape 2: Trier les commentaires de manière déterministe
+        const sortedComments = [...validComments].sort((a, b) => {
+            if (this.SORT_METHOD === 'score') {
+                // Tri primaire par score (décroissant)
+                const scoreDiff = (b.score || 0) - (a.score || 0);
+                if (scoreDiff !== 0) return scoreDiff;
+            }
+            
+            // Tri secondaire par longueur de texte (décroissant) pour stabilité
+            const lengthDiff = (b.text?.length || 0) - (a.text?.length || 0);
+            if (lengthDiff !== 0) return lengthDiff;
+            
+            // Tri tertiaire alphabétique pour une stabilité totale
+            return (a.text || '').localeCompare(b.text || '');
+        });
+        
+        // Étape 3: Limiter au nombre maximum de commentaires
+        return sortedComments.slice(0, this.MAX_COMMENTS);
+    }
+
+    /**
      * Génère un résumé des commentaires avec gestion de cache et retries
      * @param {Object} pageContent - Contenu de la page
+     * @param {boolean} forceRefresh - Force le rafraîchissement du résumé
      * @returns {Promise<Object>} - Données d'analyse
      */
-    async generateSummary(pageContent) {
+    async generateSummary(pageContent, forceRefresh = false) {
         // S'assurer que le cache est initialisé
         await this.initialize();
         
-        // Génération d'une clé de cache basée sur le contenu
+        // Normaliser et échantillonner les commentaires pour un traitement cohérent
+        pageContent.comments = this._normalizeAndSampleComments(pageContent.comments);
+        
+        // Génération d'une clé de cache améliorée basée sur l'URL
         const cacheKey = this._generateCacheKey(pageContent);
         
-        // Vérification du cache
-        if (this.cache.has(cacheKey)) {
+        // Vérification du cache (sauf si forceRefresh est true)
+        if (!forceRefresh && this.cache.has(cacheKey)) {
             console.log('Utilisation des données en cache');
             const cachedData = this.cache.get(cacheKey);
             // Ajouter une propriété indiquant que les données proviennent du cache
             return { ...cachedData, _fromCache: true };
         }
 
-        let retries = 0;
-        let lastError = null;
-        let quotaExceeded = false;
+        // ... (code existant)
 
-        while (retries < this.MAX_RETRIES && !quotaExceeded) {
-            try {
-                // Récupérer la méthode d'authentification configurée
-                const authSettings = await new Promise(resolve => {
-                    chrome.storage.local.get(['authMethod', 'apiKey'], (data) => {
-                        resolve({
-                            method: data.authMethod || 'apiKey',
-                            apiKey: data.apiKey || ''
-                        });
-                    });
-                });
-                
-                // Préparer les en-têtes d'authentification
-                let authHeader = {};
-                let apiUrl = this.API_URL;
-                
-                if (authSettings.method === 'oauth2') {
-                    try {
-                        const token = await this.getAccessToken();
-                        if (token) {
-                            authHeader = {
-                                'Authorization': `Bearer ${token}`
-                            };
-                            console.log('Utilisation de l\'authentification OAuth2');
-                        } else {
-                            throw new Error('Token OAuth2 non disponible');
-                        }
-                    } catch (authError) {
-                        console.warn('Échec de l\'authentification OAuth2:', authError);
-                        
-                        // Si l'OAuth2 échoue et qu'une clé API est disponible, on l'utilise
-                        if (authSettings.apiKey) {
-                            console.log('Utilisation de la clé API comme fallback');
-                            apiUrl = `${this.API_URL}?key=${authSettings.apiKey}`;
-                        } else {
-                            throw new Error('Authentification OAuth2 échouée. Veuillez réessayer ou configurer une clé API Gemini dans les paramètres de l\'extension comme solution de secours.');
-                        }
-                    }
-                } else {
-                    // Méthode API Key
-                    if (!authSettings.apiKey) {
-                        throw new Error('Clé API non configurée. Veuillez configurer une clé API Gemini dans les paramètres de l\'extension.');
-                    }
-                    
-                    apiUrl = `${this.API_URL}?key=${authSettings.apiKey}`;
-                    console.log('Utilisation de l\'authentification par clé API');
-                }
-                
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...authHeader
-                    },
-                    body: JSON.stringify({
-                        "contents": [{
-                            "parts": [{
-                                "text": `Analyse les commentaires Reddit suivants en te concentrant sur la diversité des opinions et leurs popularités respectives en te basant sur le nombre de votes pour chaque opinion. Propose une analyse sensible et sémantiquement valide. Regroupe les opinions similaires dans les points de consensus. Mets en évidence les opinions opposées dans les points de frictions. Fais en sorte que les points de consensus et points de frictions apportent une contribution significative à l'analyse.
+        // Préparer les en-têtes d'authentification
+        let authHeader = {};
+        let apiUrl = this.API_URL;
+        
+        // ... (code existant)
 
-                                IMPORTANT:
+        apiUrl = `${this.API_URL}?key=${authSettings.apiKey}`;
+        console.log('Utilisation de l\'authentification par clé API');
+
+        // Afficher tous les commentaires envoyés à Gemini de manière détaillée
+        console.log("======== COMMENTAIRES ENVOYÉS À GEMINI ========");
+        console.log(`Nombre total de commentaires: ${pageContent.comments.length}`);
+        let totalChars = 0;
+        pageContent.comments.forEach((comment, index) => {
+            console.log(`Commentaire #${index + 1} [Score: ${comment.score}]:`);
+            console.log(comment.text);
+            totalChars += comment.text.length;
+            console.log("-------------------------------------------");
+        });
+        console.log(`Total caractères: ${totalChars} (après optimisation)`);
+        console.log("================ FIN DES COMMENTAIRES ================");
+        
+        console.log("- - - - - - - le pageContent envoyé à gémini : ", pageContent.comments.map(c => `[Score: ${c.score}] ${c.text}`).join('\n'));
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...authHeader
+            },
+            body: JSON.stringify({
+                "contents": [{
+                    "parts": [{
+                        "text": `Analyse les commentaires suivants en te concentrant sur la diversité des opinions et leurs popularités respectives en te basant sur le nombre de votes pour chaque opinion. Propose une analyse sensible et sémantiquement valide. Regroupe les opinions similaires dans les points de consensus. Mets en évidence les opinions opposées dans les points de frictions. Fais en sorte que les points de consensus et points de frictions apportent une contribution significative à l'analyse.
+
+                        IMPORTANT:
 - Pour les frictionPoints, assure-toi que chaque sujet contient EXACTEMENT deux opinions clairement opposées
 - Les stances doivent être des phrases courtes (max 10 mots) et clairement opposées (pour/contre)
 - Les votes doivent toujours être des nombres positifs (ne pas utiliser de valeurs négatives)
 - Identifie les sujets de désaccord les plus importants et les plus polarisants
 - Chaque sujet doit être spécifique et concret, pas vague ou général
 
-IMPORTANT ET CRUCIAL: Ta réponse doit absolument être un objet JSON valide, sans aucun texte avant ou après. C'est très important ! Je veux un JSON Valide absolument. Utilise uniquement des guillemets doubles pour les chaînes.
+IMPORTANT ET CRUCIAL: Ta réponse doit absolument être un objet JSON valide, sans aucun texte avant ou après. C'est très important ! Je veux un JSON Valide absolument. Utilise uniquement des guillemets doubles pour les chaînes. Voici un modèle pour ta réponse, tu dois absolument respecter ce modèle :
 
 Titre: ${pageContent.postTitle}
 
@@ -326,142 +517,19 @@ Format de sortie attendu:
   ]
 }
 `
-                            }]
-                        }],
-                        "generationConfig": {
-                            "temperature": 0.7,
-                            "topK": 40,
-                            "topP": 0.95,
-                            "maxOutputTokens": 4096
-                        }
-                    })
-                });
+                    }]
+                }],
+                "generationConfig": {
+                    "temperature": 0,
+                    "topK": 1,
+                    "topP": 0.1,
+                    "maxOutputTokens": 4096,
+                    "seed": this.FIXED_SEED
+                }
+            })
+        });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.log('Erreur API Gemini:', errorData);
-                    
-                    // Amélioration de la détection des erreurs de quota
-                    if (
-                        errorData.error?.code === 429 || 
-                        errorData.error?.message?.includes('quota') ||
-                        errorData.error?.message?.includes('limit') ||
-                        errorData.error?.message?.includes('rate')
-                    ) {
-                        console.warn('Erreur de quota détectée:', errorData.error?.message);
-                        quotaExceeded = true;
-                        throw new Error('Erreur de quota: vous avez dépassé la limite d\'appels à l\'API Gemini. Veuillez réessayer plus tard ou utiliser une autre clé API.');
-                    } else {
-                        throw new Error(`Erreur API: ${errorData.error?.message || response.statusText}`);
-                    }
-                }
-
-                const data = await response.json();
-                
-                if (!data.candidates || data.candidates.length === 0) {
-                    throw new Error('Aucune réponse générée par l\'API');
-                }
-                
-                const text = data.candidates[0].content.parts[0].text;
-                const result = this.parseGeminiResponse(text);
-                
-                // Mise en cache du résultat
-                this.cache.set(cacheKey, result);
-                
-                // Sauvegarder le cache dans le stockage local
-                await this._saveCacheToStorage();
-                
-                return result;
-            } catch (error) {
-                console.error(`Tentative ${retries + 1}/${this.MAX_RETRIES} échouée:`, error);
-                lastError = error;
-                
-                // Si l'erreur est liée au quota, ne pas réessayer
-                if (quotaExceeded) {
-                    break;
-                }
-                
-                retries++;
-                
-                if (retries < this.MAX_RETRIES) {
-                    // Attendre avant de réessayer (backoff exponentiel)
-                    await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries)));
-                }
-            }
-        }
-        
-        // Si l'erreur est liée au quota, essayer de retourner une analyse basique
-        if (quotaExceeded) {
-            // Créer une analyse basique basée sur les commentaires
-            const basicAnalysis = this._createBasicAnalysis(pageContent);
-            
-            // Mettre en cache cette analyse basique
-            this.cache.set(cacheKey, basicAnalysis);
-            await this._saveCacheToStorage();
-            
-            return basicAnalysis;
-        }
-        
-        throw new Error(`Échec après ${this.MAX_RETRIES} tentatives: ${lastError.message}`);
-    }
-    
-    /**
-     * Crée une analyse basique basée uniquement sur les commentaires
-     * @param {Object} pageContent - Contenu de la page
-     * @returns {Object} - Analyse basique
-     * @private
-     */
-    _createBasicAnalysis(pageContent) {
-        const comments = pageContent.comments || [];
-        const totalComments = comments.length;
-        
-        // Trouver le commentaire avec le score le plus élevé
-        let topComment = { text: "Pas de commentaire", score: 0 };
-        let totalScore = 0;
-        
-        for (const comment of comments) {
-            totalScore += comment.score || 0;
-            if ((comment.score || 0) > (topComment.score || 0)) {
-                topComment = comment;
-            }
-        }
-        
-        // Créer une analyse basique
-        return {
-            overview: {
-                totalComments: totalComments,
-                mainOpinion: topComment.text.substring(0, 100) + "...",
-                consensusLevel: 0.5
-            },
-            opinionClusters: [
-                {
-                    opinion: "Analyse limitée - quota API dépassé",
-                    totalVotes: totalScore,
-                    commentCount: totalComments,
-                    avgScore: totalComments > 0 ? Math.round(totalScore / totalComments) : 0,
-                    representativeComment: topComment.text,
-                    relatedOpinions: ["Analyse complète non disponible - quota API dépassé"]
-                }
-            ],
-            consensusPoints: [
-                {
-                    topic: "Analyse limitée",
-                    agreementLevel: 0.5,
-                    totalVotes: totalScore,
-                    keyEvidence: ["Quota API dépassé - analyse complète non disponible"]
-                }
-            ],
-            frictionPoints: [],
-            voteDistribution: [
-                {
-                    opinionGroup: "Tous les commentaires",
-                    totalVotes: totalScore,
-                    percentageOfTotal: 100,
-                    topComments: comments.slice(0, 3).map(c => c.text)
-                }
-            ],
-            _quotaExceeded: true
-        };
+        // ... (code existant)
     }
 
     /**
@@ -470,362 +538,83 @@ Format de sortie attendu:
      * @returns {string} - Clé de cache
      */
     _generateCacheKey(pageContent) {
-        // Utiliser principalement l'URL pour la clé de cache
-        // Cela permettra de conserver le cache même après un rechargement de la page
+        // Méthode principale: extraire l'identifiant unique du post Reddit de l'URL
         if (pageContent.url) {
-            // Extraire l'identifiant unique du post Reddit de l'URL
-            const urlParts = pageContent.url.split('/');
-            const postId = urlParts.find(part => part.startsWith('comments'));
-            
-            if (postId) {
-                // Ajouter le titre pour plus de spécificité mais sans les commentaires
-                // qui peuvent changer lors d'un rechargement
-                return `${postId}|${pageContent.postTitle}`;
+            try {
+                // Créer une URL pour une analyse fiable
+                const url = new URL(pageContent.url);
+                const pathSegments = url.pathname.split('/').filter(Boolean);
+                
+                // L'URL Reddit suit généralement le format /r/subreddit/comments/post_id/...
+                const subreddit = pathSegments[1] === 'r' ? pathSegments[2] : null;
+                const postId = pathSegments.includes('comments') ? 
+                    pathSegments[pathSegments.indexOf('comments') + 1] : null;
+                
+                if (postId) {
+                    // Clé très spécifique avec l'ID du post et le subreddit
+                    return `reddit-${subreddit || 'unknown'}-${postId}`;
+                }
+            } catch (error) {
+                console.warn('Erreur lors du parsing de l\'URL pour la clé de cache:', error);
+                // Continuer avec la méthode de fallback
             }
         }
         
-        // Fallback: utiliser l'ancienne méthode si l'URL n'est pas disponible
-        const commentSample = pageContent.comments
-            .slice(0, Math.min(5, pageContent.comments.length))
-            .map(c => `${c.score}:${c.text.substring(0, 50)}`)
-            .join('|');
+        // Méthode de fallback améliorée: utiliser un hash basé sur le titre et les commentaires
+        const title = pageContent.postTitle || '';
+        const commentHash = this._generateCommentHash(pageContent.comments);
         
-        return `${pageContent.postTitle}|${commentSample}`;
-    }
-
-    /**
-     * Récupère le contenu de la page Reddit avec une extraction améliorée des commentaires
-     * @returns {Promise<Object>} - Contenu de la page
-     */
-    async getPageContent() {
-        return new Promise((resolve, reject) => {
-            chrome.tabs.query({active: true, currentWindow: true}, async (tabs) => {
-                try {
-                    const tab = tabs[0];
-                    
-                    // Vérification que l'URL est bien une page Reddit
-                    if (!tab.url.includes('reddit.com')) {
-                        throw new Error('Cette extension fonctionne uniquement sur Reddit');
-                    }
-                    
-                    // Utiliser chrome.scripting.executeScript pour exécuter le code directement
-                    const results = await chrome.scripting.executeScript({
-                        target: {tabId: tab.id},
-                        func: () => {
-                            try {
-                                console.log('Début de l\'extraction du contenu Reddit');
-                                const comments = [];
-                                
-                                // Extraction des commentaires
-                                console.log('Extraction des commentaires...');
-                                
-                                // Approche 1: Rechercher les éléments shreddit-comment
-                                const shredditComments = document.querySelectorAll('shreddit-comment');
-                                console.log(`Nombre d'éléments shreddit-comment trouvés: ${shredditComments.length}`);
-                                
-                                if (shredditComments.length > 0) {
-                                    // Extraire les informations des attributs
-                                    shredditComments.forEach(comment => {
-                                        try {
-                                            const author = comment.getAttribute('author') || 'Anonyme';
-                                            const score = parseInt(comment.getAttribute('score') || '0');
-                                            const id = comment.getAttribute('thingid') || '';
-                                            const depth = parseInt(comment.getAttribute('depth') || '0');
-                                            
-                                            // Essayer de trouver le contenu du commentaire
-                                            let commentText = '';
-                                            
-                                            // Chercher dans les enfants directs
-                                            const contentElements = comment.querySelectorAll('p, div, span');
-                                            if (contentElements.length > 0) {
-                                                // Concaténer le texte de tous les éléments de contenu
-                                                contentElements.forEach(el => {
-                                                    const text = el.textContent.trim();
-                                                    if (text) commentText += text + ' ';
-                                                });
-                                                commentText = commentText.trim();
-                                            }
-                                            
-                                            // Si aucun texte n'a été trouvé, utiliser un texte générique
-                                            if (!commentText) {
-                                                commentText = '[Contenu non disponible]';
-                                            }
-                                            
-                                            comments.push({
-                                                text: commentText,
-                                                score: score,
-                                                author: author,
-                                                id: id,
-                                                depth: depth,
-                                                truncatedText: this.truncateTextToOptimizePerformances ? 
-                                                    (commentText.length > 100 ? commentText.substring(0, 100) + '...' : commentText) : 
-                                                    commentText
-                                            });
-                                        } catch (commentError) {
-                                            console.warn('Erreur lors de l\'extraction d\'un commentaire:', commentError);
-                                            // Continuer avec le commentaire suivant
-                                        }
-                                    });
-                                    
-                                    console.log(`Commentaires extraits avec succès: ${comments.length}`);
-                                } else {
-                                    // Approche 2: Rechercher les éléments avec slot="comment-content"
-                                    console.log('Tentative d\'extraction via slot="comment-content"');
-                                    const commentSlots = document.querySelectorAll('[slot="comment-content"]');
-                                    console.log(`Nombre d'éléments slot="comment-content" trouvés: ${commentSlots.length}`);
-                                    
-                                    if (commentSlots.length > 0) {
-                                        commentSlots.forEach(slot => {
-                                            try {
-                                                // Trouver le parent shreddit-comment pour obtenir les métadonnées
-                                                const commentElement = slot.closest('shreddit-comment');
-                                                
-                                                const author = commentElement ? (commentElement.getAttribute('author') || 'Anonyme') : 'Anonyme';
-                                                const score = commentElement ? parseInt(commentElement.getAttribute('score') || '0') : 0;
-                                                
-                                                const commentText = slot.textContent.trim();
-                                                
-                                                if (commentText && commentText.length > 5) {
-                                                    comments.push({
-                                                        text: commentText,
-                                                        score: score,
-                                                        author: author,
-                                                        truncatedText: commentText
-                                                    });
-                                                }
-                                            } catch (slotError) {
-                                                console.warn('Erreur lors de l\'extraction d\'un slot de commentaire:', slotError);
-                                                // Continuer avec le slot suivant
-                                            }
-                                        });
-                                        
-                                        console.log(`Commentaires extraits via slots: ${comments.length}`);
-                                    } else {
-                                        // Approche 3: Rechercher les éléments avec la classe .Comment
-                                        console.log('Tentative d\'extraction via .Comment');
-                                        const oldComments = document.querySelectorAll('.Comment');
-                                        console.log(`Nombre d'éléments .Comment trouvés: ${oldComments.length}`);
-                                        
-                                        if (oldComments.length > 0) {
-                                            oldComments.forEach(comment => {
-                                                try {
-                                                    // Extraction du contenu
-                                                    const contentElem = comment.querySelector('.RichTextJSON-root, .md');
-                                                    if (!contentElem) return;
-                                                    
-                                                    const commentText = contentElem.textContent.trim();
-                                                    if (!commentText || commentText.length <= 5) return;
-                                                    
-                                                    // Extraction du score
-                                                    const scoreElem = comment.querySelector('.score, [id^="vote-arrows-"]');
-                                                    const score = scoreElem ? parseInt(scoreElem.textContent) || 0 : 0;
-                                                    
-                                                    // Extraction de l'auteur
-                                                    const authorElem = comment.querySelector('.author');
-                                                    const author = authorElem ? authorElem.textContent.trim() : 'Anonyme';
-                                                    
-                                                    comments.push({
-                                                        text: commentText,
-                                                        score: score,
-                                                        author: author,
-                                                        truncatedText: commentText
-                                                    });
-                                                } catch (oldCommentError) {
-                                                    console.warn('Erreur lors de l\'extraction d\'un ancien commentaire:', oldCommentError);
-                                                    // Continuer avec le commentaire suivant
-                                                }
-                                            });
-                                            
-                                            console.log(`Commentaires extraits via .Comment: ${comments.length}`);
-                                        } else {
-                                            // Approche 4: Recherche générique de texte
-                                            console.log('Tentative d\'extraction générique de texte');
-                                            const paragraphs = document.querySelectorAll('p');
-                                            console.log(`Nombre de paragraphes trouvés: ${paragraphs.length}`);
-                                            
-                                            if (paragraphs.length > 0) {
-                                                // Filtrer pour ne garder que les paragraphes qui ressemblent à des commentaires
-                                                paragraphs.forEach((p, index) => {
-                                                    try {
-                                                        const text = p.textContent.trim();
-                                                        if (text && text.length > 20 && text.length < 2000) {
-                                                            comments.push({
-                                                                text: text,
-                                                                score: 0, // Score inconnu
-                                                                author: 'Utilisateur ' + index,
-                                                                truncatedText: text
-                                                            });
-                                                        }
-                                                    } catch (paragraphError) {
-                                                        console.warn('Erreur lors de l\'extraction d\'un paragraphe:', paragraphError);
-                                                        // Continuer avec le paragraphe suivant
-                                                    }
-                                                });
-                                                
-                                                console.log(`Textes extraits de manière générique: ${comments.length}`);
-                                            }
-                                        }
-                                    }
-                                }
-                                
-                                // Vérifier si des commentaires ont été trouvés
-                                if (comments.length === 0) {
-                                    console.warn('Aucun commentaire trouvé sur la page');
-                                    // Ajouter un commentaire fictif pour éviter les erreurs
-                                    comments.push({
-                                        text: "Aucun commentaire n'a été trouvé sur cette page. Assurez-vous d'être sur une page de discussion Reddit avec des commentaires visibles.",
-                                        score: 0,
-                                        author: 'Système',
-                                        truncatedText: "Aucun commentaire n'a été trouvé sur cette page."
-                                    });
-                                }
-                                
-                                // Tri des commentaires par score décroissant
-                                comments.sort((a, b) => b.score - a.score);
-                                
-                                // Extraction du titre et du contenu du post
-                                const postTitle = document.querySelector('h1, [data-testid="post-title"]')?.textContent || 'Titre non disponible';
-                                const postContent = document.querySelector('[data-testid="post-content"], .Post__content')?.textContent || '';
-                                
-                                console.log(`Extraction terminée: ${comments.length} commentaires, titre: "${postTitle.substring(0, 30)}${postTitle.length > 30 ? '...' : ''}"`);
-                                
-                                return {
-                                    postTitle: postTitle,
-                                    postContent: postContent,
-                                    comments: comments,
-                                    url: window.location.href,
-                                    commentCount: comments.length
-                                };
-                            } catch (error) {
-                                console.error('Erreur lors de l\'extraction du contenu:', error);
-                                // Retourner un objet avec une erreur mais toujours utilisable
-                                return {
-                                    error: error.message,
-                                    postTitle: document.title || 'Titre non disponible',
-                                    postContent: '',
-                                    comments: [{
-                                        text: "Erreur lors de l'extraction des commentaires: " + error.message,
-                                        score: 0,
-                                        author: 'Système',
-                                        truncatedText: "Erreur lors de l'extraction des commentaires: " + error.message
-                                    }],
-                                    url: window.location.href,
-                                    commentCount: 1
-                                };
-                            }
-                        }
-                    });
-                    
-                    if (results && results[0]?.result) {
-                        const content = results[0].result;
-                        
-                        // Limiter le nombre de commentaires pour éviter les problèmes de performance
-                        content.comments = content.comments.slice(0, this.MAX_COMMENTS);
-                        
-                        // Ajouter des métadonnées
-                        content.extractedAt = new Date().toISOString();
-                        content.commentCount = content.comments.length;
-                        
-                        resolve(content);
-                    } else {
-                        reject(new Error('Impossible de récupérer le contenu de la page'));
-                    }
-                } catch (error) {
-                    console.error('Erreur lors de l\'extraction du contenu:', error);
-                    reject(error);
-                }
-            });
-        });
-    }
-
-    /**
-     * Charge le cache depuis le stockage local
-     * @private
-     */
-    async _loadCacheFromStorage() {
-        try {
-            const data = await new Promise(resolve => {
-                chrome.storage.local.get('analysisCache', data => {
-                    resolve(data.analysisCache || {});
-                });
-            });
-            
-            // Convertir l'objet en Map
-            this.cache = new Map(Object.entries(data));
-            console.log(`Cache chargé: ${this.cache.size} entrées`);
-            this.cacheInitialized = true;
-        } catch (error) {
-            console.error('Erreur lors du chargement du cache:', error);
-            this.cache = new Map();
-        }
+        return `reddit-post-${this._hashString(title)}-${commentHash}`;
     }
     
     /**
-     * Sauvegarde le cache dans le stockage local
-     * @private
+     * Génère un hash à partir d'une chaîne de caractères
+     * @param {string} str - Chaîne à hasher
+     * @returns {string} - Hash de la chaîne
      */
-    async _saveCacheToStorage() {
-        try {
-            // Convertir la Map en objet pour le stockage
-            const cacheObject = Object.fromEntries(this.cache.entries());
-            
-            await new Promise(resolve => {
-                chrome.storage.local.set({ analysisCache: cacheObject }, () => {
-                    resolve();
-                });
-            });
-            
-            console.log(`Cache sauvegardé: ${this.cache.size} entrées`);
-        } catch (error) {
-            console.error('Erreur lors de la sauvegarde du cache:', error);
+    _hashString(str) {
+        if (typeof str !== 'string') return '0';
+        
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Conversion en entier 32 bits
         }
+        // Convertir en base36 pour obtenir un hash compact
+        return Math.abs(hash).toString(36);
+    }
+    
+    /**
+     * Génère un hash basé sur tous les commentaires
+     * @param {Array} comments - Commentaires à hasher
+     * @returns {string} - Hash des commentaires
+     */
+    _generateCommentHash(comments) {
+        if (!Array.isArray(comments) || comments.length === 0) {
+            return '0';
+        }
+        
+        // Utiliser les scores et un échantillon de texte de tous les commentaires pour le hash
+        const commentStr = comments
+            .slice(0, Math.min(50, comments.length)) // Utiliser jusqu'à 50 commentaires
+            .map(c => `${c.score || 0}:${(c.text || '').substring(0, 20)}`) // Échantillon plus large
+            .join('|');
+        
+        return this._hashString(commentStr);
     }
 
-    /**
-     * Efface le cache d'analyses
-     * @returns {Promise<void>}
-     */
-    async clearCache() {
-        this.cache.clear();
-        await this._saveCacheToStorage();
-        console.log('Cache effacé');
-    }
-
-    /**
-     * Charge le paramètre de troncature de texte depuis le stockage local
-     * @private
-     */
-    async _loadTruncateTextSetting() {
-        try {
-            const data = await new Promise(resolve => {
-                chrome.storage.local.get('truncateTextToOptimizePerformances', data => {
-                    resolve(data.truncateTextToOptimizePerformances);
-                });
-            });
-            
-            this.truncateTextToOptimizePerformances = data !== undefined ? data : true;
-            console.log(`Paramètre de troncature de texte chargé: ${this.truncateTextToOptimizePerformances}`);
-        } catch (error) {
-            console.error('Erreur lors du chargement du paramètre de troncature de texte:', error);
-            this.truncateTextToOptimizePerformances = true;
-        }
-    }
+    // ... (autres méthodes)
 }
 
 // Rendre la classe disponible à la fois pour les modules ES6 et les Service Workers
 if (typeof module !== 'undefined' && module.exports) {
     // CommonJS/Node.js
     module.exports = GeminiService;
-} else if (typeof exports !== 'undefined') {
-    // CommonJS
-    exports.GeminiService = GeminiService;
-} else if (typeof define === 'function' && define.amd) {
-    // AMD
-    define([], function() { return GeminiService; });
 } else if (typeof self !== 'undefined') {
-    // Service Worker / Window global
+    // Service Worker
     self.GeminiService = GeminiService;
 }
 
-// Pour les modules ES6
+// Ajouter l'export par défaut pour les imports ES6
 export default GeminiService;

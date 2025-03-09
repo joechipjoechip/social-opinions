@@ -114,7 +114,8 @@ chrome.runtime.onInstalled.addListener((details) => {
       cacheEnabled: true,
       cacheExpiration: 24, // heures
       theme: 'auto',
-      savedAnalyses: []
+      savedAnalyses: [],
+      truncateTextToOptimizePerformances: false
     }, () => {
       console.log('Paramètres par défaut initialisés');
     });

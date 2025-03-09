@@ -21,6 +21,9 @@ self.GeminiService = class GeminiService {
         
         // Charger le cache depuis le stockage local
         this._loadCacheFromStorage();
+        
+        // Seed fixe pour les générations Gemini
+        this.FIXED_SEED = 42;
     }
 
     setMaxComments(limit) {
@@ -236,6 +239,53 @@ self.GeminiService = class GeminiService {
     }
 
     /**
+     * Normalise et échantillonne les commentaires de manière déterministe
+     * @param {Array} comments - Commentaires bruts extraits
+     * @returns {Array} - Commentaires normalisés et échantillonnés
+     * @private
+     */
+    _normalizeAndSampleComments(comments) {
+        if (!Array.isArray(comments) || comments.length === 0) {
+            return [];
+        }
+        
+        // Étape 1: Filtrer les commentaires invalides, vides ou trop courts et nettoyer le texte
+        const validComments = comments.filter(comment => 
+            comment && 
+            typeof comment.text === 'string' && 
+            comment.text.trim().length > 5
+        ).map(comment => ({
+            ...comment,
+            // Nettoyage complet du texte :
+            // 1. trim() pour supprimer les espaces au début et à la fin
+            // 2. replace() avec regex pour remplacer les espaces multiples par un seul espace
+            // 3. replace() pour supprimer les sauts de ligne et tabulations
+            text: comment.text.trim()
+                .replace(/\s+/g, ' ')                  // Remplacer tous les espaces multiples par un seul espace
+                .replace(/[\r\n\t]+/g, ' ')            // Remplacer les sauts de ligne et tabulations par un espace
+                .replace(/\s+([.,;:!?])/g, '$1')       // Supprimer les espaces avant la ponctuation
+                .replace(/\s{2,}/g, ' ')               // S'assurer qu'il n'y a pas d'espaces doubles (redondant mais sécuritaire)
+        }));
+        
+        // Étape 2: Trier les commentaires par score (décroissant)
+        const sortedComments = [...validComments].sort((a, b) => {
+            // Tri primaire par score (décroissant)
+            const scoreDiff = (b.score || 0) - (a.score || 0);
+            if (scoreDiff !== 0) return scoreDiff;
+            
+            // Tri secondaire par longueur de texte (décroissant) pour stabilité
+            const lengthDiff = (b.text?.length || 0) - (a.text?.length || 0);
+            if (lengthDiff !== 0) return lengthDiff;
+            
+            // Tri tertiaire alphabétique pour une stabilité totale
+            return (a.text || '').localeCompare(b.text || '');
+        });
+        
+        // Étape 3: Limiter au nombre maximum de commentaires
+        return sortedComments.slice(0, this.MAX_COMMENTS);
+    }
+
+    /**
      * Génère un résumé des commentaires Reddit en utilisant l'API Gemini
      * @param {Object} pageContent - Contenu de la page Reddit
      * @param {Object} authSettings - Paramètres d'authentification
@@ -247,11 +297,8 @@ self.GeminiService = class GeminiService {
             throw new Error('Aucun commentaire à analyser');
         }
         
-        // Limiter le nombre de commentaires pour éviter les problèmes de taille
-        if (pageContent.comments.length > this.MAX_COMMENTS) {
-            console.log(`Limitation du nombre de commentaires à ${this.MAX_COMMENTS}`);
-            pageContent.comments = pageContent.comments.slice(0, this.MAX_COMMENTS);
-        }
+        // Normaliser et échantillonner les commentaires
+        pageContent.comments = this._normalizeAndSampleComments(pageContent.comments);
         
         // Générer une clé de cache basée sur le contenu
         const cacheKey = this._generateCacheKey(pageContent);
@@ -390,9 +437,11 @@ self.GeminiService = class GeminiService {
                             }]
                         }],
                         "generationConfig": {
-                            "temperature": 0.4,
-                            "topP": 1.0,
-                            "maxOutputTokens": 4096
+                            "temperature": 0,
+                            "topK": 1,
+                            "topP": 0.1,
+                            "maxOutputTokens": 4096,
+                            "seed": this.FIXED_SEED
                         },
                         "safetySettings": [
                             {
@@ -415,6 +464,21 @@ self.GeminiService = class GeminiService {
                     })
                 });
 
+                // Afficher tous les commentaires envoyés à Gemini de manière détaillée
+                console.log("======== COMMENTAIRES ENVOYÉS À GEMINI (SERVICE WORKER) ========");
+                console.log(`Nombre total de commentaires: ${pageContent.comments.length}`);
+                let totalChars = 0;
+                pageContent.comments.forEach((comment, index) => {
+                    console.log(`Commentaire #${index + 1} [Score: ${comment.score}]:`);
+                    console.log(comment.text);
+                    totalChars += comment.text.length;
+                    console.log("-------------------------------------------");
+                });
+                console.log(`Total caractères: ${totalChars} (après optimisation)`);
+                console.log("================ FIN DES COMMENTAIRES ================");
+                
+                console.log('Commentaires envoyés à Gemini:', JSON.stringify(pageContent.comments, null, 2));
+                
                 // Vérifier si la réponse est OK
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));

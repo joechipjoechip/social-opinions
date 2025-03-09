@@ -276,12 +276,29 @@ function getPageContent() {
 
 // Écouteur de messages pour communiquer avec le popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'getContent') {
+    console.log('Message reçu dans content.js:', request.action);
+    
+    // Répondre au ping pour vérifier que le content script est injecté
+    if (request.action === 'ping') {
+        console.log('Ping reçu, réponse envoyée');
+        sendResponse({ status: 'ok' });
+        return true;
+    }
+    
+    if (request.action === 'getContent' || request.action === 'getPageContent') {
         console.log('Réception de la demande d\'extraction de contenu');
         
-        // Extraction du contenu et envoi de la réponse
-        const content = getPageContent();
-        sendResponse(content);
+        try {
+            // Extraction du contenu et envoi de la réponse
+            const content = getPageContent();
+            sendResponse(content);
+        } catch (error) {
+            console.error('Erreur lors de l\'extraction du contenu:', error);
+            sendResponse({ 
+                error: `Erreur lors de l'extraction: ${error.message || 'Erreur inconnue'}`,
+                errorDetails: error.toString()
+            });
+        }
     }
     
     // Retourner true pour indiquer que la réponse sera envoyée de manière asynchrone

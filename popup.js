@@ -395,12 +395,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             const content = await geminiService.getPageContent();
             
             // Vérifier si le contenu a été récupéré correctement
-            if (!content || content.error) {
-                throw new Error(content.error || 'Impossible de récupérer le contenu de la page');
+            if (!content) {
+                throw new Error('Impossible de récupérer le contenu de la page');
+            }
+            
+            if (content && content.error) {
+                throw new Error(content.error);
             }
             
             // Vérifier si nous sommes sur Reddit
-            if (!content.url.includes('reddit.com')) {
+            if (!content.url || !content.url.includes('reddit.com')) {
                 throw new Error('Cette extension fonctionne uniquement sur Reddit');
             }
             
@@ -441,14 +445,18 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             // Créer une instance du modèle RedditAnalysis
+            if (!analysisData) {
+                throw new Error("Données d'analyse manquantes ou invalides");
+            }
+            
             currentAnalysis = new RedditAnalysis(analysisData);
             
-            // Ajouter les métadonnées
+            // Ajouter les métadonnées avec vérification des valeurs undefined
             currentAnalysis.metadata = {
                 createdAt: new Date().toISOString(),
-                postUrl: content.url,
-                postTitle: content.postTitle,
-                commentCount: content.commentCount,
+                postUrl: content?.url || '',
+                postTitle: content?.postTitle || '',
+                commentCount: content?.commentCount || 0,
                 analysisVersion: '1.0',
                 quotaExceeded: analysisData._quotaExceeded || false,
                 fromCache: analysisData._fromCache || false
@@ -600,27 +608,39 @@ document.addEventListener('DOMContentLoaded', async function() {
                 `;
                 
                 // Ajouter un gestionnaire d'événements pour le bouton de réessai
-                document.getElementById('retryButton').addEventListener('click', () => {
-                    location.reload();
-                });
+                const retryButton1 = document.getElementById('retryButton');
+                if (retryButton1) {
+                    retryButton1.addEventListener('click', () => {
+                        location.reload();
+                    });
+                }
                 
                 errorDiv.style.display = 'block';
-                document.getElementById('loading').classList.add('hidden');
+                const loadingElement1 = document.getElementById('loading');
+                if (loadingElement1) {
+                    loadingElement1.classList.add('hidden');
+                }
             } else {
                 // Erreur générique
                 errorDiv.innerHTML = `
                     <h3>Erreur</h3>
-                    <p>${error.message}</p>
+                    <p>${error.message || 'Erreur inconnue'}</p>
                     <button id="retryButton" class="primary-button">Réessayer</button>
                 `;
                 
                 // Ajouter un gestionnaire d'événements pour le bouton de réessai
-                document.getElementById('retryButton').addEventListener('click', () => {
-                    location.reload();
-                });
+                const retryButton2 = document.getElementById('retryButton');
+                if (retryButton2) {
+                    retryButton2.addEventListener('click', () => {
+                        location.reload();
+                    });
+                }
                 
                 errorDiv.style.display = 'block';
-                document.getElementById('loading').classList.add('hidden');
+                const loadingElement2 = document.getElementById('loading');
+                if (loadingElement2) {
+                    loadingElement2.classList.add('hidden');
+                }
             }
         } finally {
             loadingDiv.classList.add('hidden');
@@ -636,7 +656,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Récupérer l'état actuel de la troncature
         chrome.storage.local.get('truncateTextToOptimizePerformances', (data) => {
             const truncateText = data.truncateTextToOptimizePerformances !== undefined ? 
-                data.truncateTextToOptimizePerformances : true;
+                data.truncateTextToOptimizePerformances : false;
             
             // Mettre à jour l'apparence du bouton selon l'état
             updateTruncateButtonAppearance(truncateTextBtn, truncateText);
