@@ -109,45 +109,270 @@ export function createControversyLegend(container, labels, opinion1Values, opini
 export function addLegendInteractions(legendContainer, chart, highlightCallback, resetCallback, toggleCallback) {
     if (!legendContainer || !chart) return;
     
-    const legendItems = legendContainer.querySelectorAll('.custom-legend-item');
+    // Sélectionner tous les éléments de légende, y compris les éléments imbriqués
+    const legendItems = legendContainer.querySelectorAll('.legend-section .custom-legend-item, .legend-section [data-type]');
+    
     legendItems.forEach(item => {
+        // Déterminer si l'élément a un attribut data-index ou data-type
+        const hasIndex = item.hasAttribute('data-index');
+        const hasType = item.hasAttribute('data-type');
+        
+        if (!hasIndex && !hasType) return;
+        
+        // Ajouter une classe pour indiquer que l'élément est interactif
+        item.classList.add('interactive');
+        
+        // Interaction au survol
         item.addEventListener('mouseenter', () => {
-            const index = parseInt(item.getAttribute('data-index'));
-            highlightCallback(chart, index);
+            let index, datasetIndex;
+            
+            if (hasIndex) {
+                index = parseInt(item.getAttribute('data-index'));
+                datasetIndex = item.hasAttribute('data-dataset-index') 
+                    ? parseInt(item.getAttribute('data-dataset-index')) 
+                    : null;
+            } else if (hasType) {
+                // Pour les éléments avec data-type (sentiment)
+                const type = item.getAttribute('data-type');
+                index = getSentimentIndex(type);
+                datasetIndex = item.hasAttribute('data-dataset-index') 
+                    ? parseInt(item.getAttribute('data-dataset-index')) 
+                    : null;
+            }
+            
+            // Appliquer un style visuel à l'élément survolé
+            item.classList.add('hovered');
+            
+            // Appeler la fonction de mise en surbrillance avec les indices appropriés
+            if (index !== undefined) {
+                highlightCallback(chart, index, datasetIndex);
+            }
         });
         
+        // Réinitialisation au départ du survol
         item.addEventListener('mouseleave', () => {
+            // Supprimer le style visuel
+            item.classList.remove('hovered');
+            
+            // Réinitialiser le graphique
             resetCallback(chart);
         });
         
+        // Interaction au clic
         item.addEventListener('click', () => {
-            const index = parseInt(item.getAttribute('data-index'));
-            toggleCallback(chart, index, item);
+            let index, datasetIndex;
+            
+            if (hasIndex) {
+                index = parseInt(item.getAttribute('data-index'));
+                datasetIndex = item.hasAttribute('data-dataset-index') 
+                    ? parseInt(item.getAttribute('data-dataset-index')) 
+                    : null;
+            } else if (hasType) {
+                // Pour les éléments avec data-type (sentiment)
+                const type = item.getAttribute('data-type');
+                index = getSentimentIndex(type);
+                datasetIndex = item.hasAttribute('data-dataset-index') 
+                    ? parseInt(item.getAttribute('data-dataset-index')) 
+                    : null;
+            }
+            
+            // Basculer la visibilité de l'élément
+            if (index !== undefined) {
+                toggleCallback(chart, index, item, datasetIndex);
+                
+                // Afficher un panneau de détails si disponible
+                showDetailsPanel(item, chart, index, datasetIndex);
+            }
         });
     });
+}
+
+/**
+ * Obtient l'index correspondant à un type de sentiment
+ * @param {string} sentimentType - Type de sentiment (positive, neutral, negative)
+ * @returns {number} Index correspondant
+ * @private
+ */
+function getSentimentIndex(sentimentType) {
+    switch (sentimentType) {
+        case 'positive': return 0;
+        case 'neutral': return 1;
+        case 'negative': return 2;
+        default: return 0;
+    }
+}
+
+/**
+ * Affiche un panneau de détails pour un élément de légende
+ * @param {HTMLElement} legendItem - Élément de légende
+ * @param {Chart} chart - Instance de graphique
+ * @param {number} index - Index de l'élément
+ * @param {number} datasetIndex - Index du jeu de données
+ * @private
+ */
+function showDetailsPanel(legendItem, chart, index, datasetIndex) {
+    // Vérifier si l'élément a des détails à afficher
+    if (!legendItem.hasAttribute('data-details') && !chart.data.details) return;
+    
+    // Récupérer les détails depuis l'attribut ou depuis les données du graphique
+    const details = legendItem.hasAttribute('data-details') 
+        ? JSON.parse(legendItem.getAttribute('data-details'))
+        : getDetailsFromChart(chart, index, datasetIndex);
+    
+    if (!details) return;
+    
+    // Créer ou récupérer le panneau de détails
+    let detailsPanel = document.getElementById('chart-details-panel');
+    if (!detailsPanel) {
+        detailsPanel = document.createElement('div');
+        detailsPanel.id = 'chart-details-panel';
+        detailsPanel.className = 'chart-details-panel';
+        document.body.appendChild(detailsPanel);
+    }
+    
+    // Remplir le panneau avec les détails
+    detailsPanel.innerHTML = `
+        <div class="details-header">
+            <h3>${details.title || 'Détails'}</h3>
+            <button class="close-details">&times;</button>
+        </div>
+        <div class="details-content">
+            ${details.content || ''}
+        </div>
+        ${details.examples ? `
+            <div class="details-examples">
+                <h4>Exemples de commentaires</h4>
+                <ul>
+                    ${details.examples.map(example => `<li>${example}</li>`).join('')}
+                </ul>
+            </div>
+        ` : ''}
+    `;
+    
+    // Positionner le panneau près de l'élément de légende
+    const rect = legendItem.getBoundingClientRect();
+    detailsPanel.style.top = `${rect.top + window.scrollY}px`;
+    detailsPanel.style.left = `${rect.right + window.scrollX + 10}px`;
+    
+    // Afficher le panneau
+    detailsPanel.classList.add('visible');
+    
+    // Ajouter un gestionnaire pour fermer le panneau
+    detailsPanel.querySelector('.close-details').addEventListener('click', () => {
+        detailsPanel.classList.remove('visible');
+    });
+    
+    // Fermer le panneau en cliquant en dehors
+    document.addEventListener('click', function closePanel(e) {
+        if (!detailsPanel.contains(e.target) && !legendItem.contains(e.target)) {
+            detailsPanel.classList.remove('visible');
+            document.removeEventListener('click', closePanel);
+        }
+    });
+}
+
+/**
+ * Récupère les détails à partir des données du graphique
+ * @param {Chart} chart - Instance de graphique
+ * @param {number} index - Index de l'élément
+ * @param {number} datasetIndex - Index du jeu de données
+ * @returns {Object} Détails formatés
+ * @private
+ */
+function getDetailsFromChart(chart, index, datasetIndex) {
+    if (!chart.data.details) return null;
+    
+    // Récupérer les détails spécifiques à cet élément
+    const details = datasetIndex !== null && chart.data.details[datasetIndex] 
+        ? chart.data.details[datasetIndex][index]
+        : chart.data.details[index];
+    
+    if (!details) return null;
+    
+    // Formater les détails pour l'affichage
+    return {
+        title: details.title || chart.data.labels[index],
+        content: details.description || '',
+        examples: details.examples || []
+    };
 }
 
 /**
  * Met en surbrillance un élément du graphique circulaire
  * @param {Chart} chart - Instance de graphique
  * @param {number} dataIndex - Index de l'élément
+ * @param {number} datasetIndex - Index du jeu de données (optionnel)
  */
-export function highlightPieDataset(chart, dataIndex) {
-    if (!chart || !chart.data || !chart.data.datasets || chart.data.datasets.length === 0) return;
+export function highlightPieDataset(chart, dataIndex, datasetIndex = null) {
+    if (!chart || !chart.data || !chart.data.datasets) return;
     
-    // Sauvegarder les couleurs originales si ce n'est pas déjà fait
-    const dataset = chart.data.datasets[0];
-    if (!dataset.originalBackgroundColor) {
-        dataset.originalBackgroundColor = [...dataset.backgroundColor];
-    }
+    // Réinitialiser d'abord tous les éléments
+    resetPieHighlight(chart);
     
-    // Réduire l'opacité de tous les segments sauf celui survolé
-    const newBackgroundColors = dataset.originalBackgroundColor.map((color, index) => {
-        return index === dataIndex ? color : adjustOpacity(color, 0.3);
+    // Déterminer si nous avons un datasetIndex spécifique ou si nous devons mettre en évidence dans tous les jeux de données
+    const datasets = datasetIndex !== null ? [chart.data.datasets[datasetIndex]] : chart.data.datasets;
+    
+    // Mettre en évidence l'élément sélectionné dans chaque jeu de données
+    datasets.forEach((dataset, i) => {
+        if (!dataset.backgroundColor) return;
+        
+        // Pour les graphiques multi-séries, nous devons gérer différemment selon le jeu de données
+        const actualIndex = datasetIndex !== null ? dataIndex : getActualDataIndex(i, dataIndex);
+        
+        if (Array.isArray(dataset.backgroundColor)) {
+            // Sauvegarder les couleurs originales si ce n'est pas déjà fait
+            if (!dataset._originalBackgroundColor) {
+                dataset._originalBackgroundColor = [...dataset.backgroundColor];
+            }
+            
+            // Appliquer l'effet de surbrillance
+            dataset.backgroundColor = dataset.backgroundColor.map((color, j) => {
+                return j === actualIndex ? color : adjustOpacity(color, 0.3);
+            });
+        }
+        
+        // Augmenter le décalage de l'élément sélectionné
+        if (!dataset._originalHoverOffset) {
+            dataset._originalHoverOffset = dataset.hoverOffset || 0;
+        }
+        
+        if (Array.isArray(dataset.hoverOffset)) {
+            if (!dataset._originalHoverOffset) {
+                dataset._originalHoverOffset = [...dataset.hoverOffset];
+            }
+            dataset.hoverOffset = dataset.hoverOffset.map((offset, j) => {
+                return j === actualIndex ? 15 : offset;
+            });
+        } else {
+            // Appliquer un décalage plus important à l'élément sélectionné
+            const hoverOffsets = new Array(dataset.data.length).fill(dataset.hoverOffset || 0);
+            hoverOffsets[actualIndex] = 15;
+            dataset.hoverOffset = hoverOffsets;
+        }
     });
     
-    dataset.backgroundColor = newBackgroundColors;
     chart.update();
+}
+
+/**
+ * Obtient l'index réel des données pour les graphiques multi-séries
+ * @param {number} datasetIndex - Index du jeu de données
+ * @param {number} dataIndex - Index de l'élément dans la légende
+ * @returns {number} Index réel des données
+ * @private
+ */
+function getActualDataIndex(datasetIndex, dataIndex) {
+    // Pour le graphique multi-séries, nous avons 3 jeux de données avec des structures différentes
+    if (datasetIndex === 0) { // Niveau 1: Sentiment global (3 éléments)
+        return dataIndex % 3; // 0, 1, 2 pour positif, neutre, négatif
+    } else if (datasetIndex === 1) { // Niveau 2: Groupes principaux (6 éléments)
+        // Mapper les indices 0-2 (positif, neutre, négatif) pour le groupe A
+        // et 3-5 (positif, neutre, négatif) pour le groupe B
+        return Math.floor(dataIndex / 3) * 3 + (dataIndex % 3);
+    } else if (datasetIndex === 2) { // Niveau 3: Sous-groupes (3 éléments)
+        return dataIndex % 3; // 0, 1, 2 pour positif, neutre, négatif
+    }
+    return dataIndex;
 }
 
 /**
@@ -220,22 +445,16 @@ export function highlightControversyDataset(chart, dataIndex) {
 export function resetPieHighlight(chart) {
     if (!chart || !chart.data || !chart.data.datasets) return;
     
-    // Restaurer les couleurs originales pour tous les datasets
-    chart.data.datasets.forEach((dataset, datasetIndex) => {
-        if (dataset.originalBackgroundColor) {
-            // Si c'est un tableau, appliquer directement
-            if (Array.isArray(dataset.originalBackgroundColor)) {
-                dataset.backgroundColor = [...dataset.originalBackgroundColor];
-            } 
-            // Si c'est une seule couleur, l'appliquer à tous les éléments
-            else {
-                const meta = chart.getDatasetMeta(datasetIndex);
-                if (meta && meta.data) {
-                    dataset.backgroundColor = Array(meta.data.length).fill(dataset.originalBackgroundColor);
-                } else {
-                    dataset.backgroundColor = dataset.originalBackgroundColor;
-                }
-            }
+    // Réinitialiser tous les jeux de données
+    chart.data.datasets.forEach(dataset => {
+        // Réinitialiser les couleurs d'arrière-plan
+        if (dataset._originalBackgroundColor) {
+            dataset.backgroundColor = [...dataset._originalBackgroundColor];
+        }
+        
+        // Réinitialiser les décalages au survol
+        if (dataset._originalHoverOffset !== undefined) {
+            dataset.hoverOffset = dataset._originalHoverOffset;
         }
     });
     
@@ -247,24 +466,48 @@ export function resetPieHighlight(chart) {
  * @param {Chart} chart - Instance de graphique
  * @param {number} dataIndex - Index de l'élément
  * @param {HTMLElement} legendItem - Élément de légende correspondant
+ * @param {number} datasetIndex - Index du jeu de données (optionnel)
  */
-export function toggleDataVisibility(chart, dataIndex, legendItem) {
+export function toggleDataVisibility(chart, dataIndex, legendItem, datasetIndex = null) {
     if (!chart || !chart.getDatasetMeta) return;
     
-    const meta = chart.getDatasetMeta(0);
-    if (!meta || !meta.data || !meta.data[dataIndex]) return;
+    // Déterminer les jeux de données à modifier
+    const datasetIndices = datasetIndex !== null 
+        ? [datasetIndex] 
+        : Array.from({ length: chart.data.datasets.length }, (_, i) => i);
     
-    // Basculer la visibilité
-    meta.data[dataIndex].hidden = !meta.data[dataIndex].hidden;
+    // Basculer la visibilité pour chaque jeu de données
+    let isHidden = false;
+    
+    datasetIndices.forEach(dsIndex => {
+        const meta = chart.getDatasetMeta(dsIndex);
+        if (!meta || !meta.data) return;
+        
+        // Pour les graphiques multi-séries, nous devons gérer différemment selon le jeu de données
+        const actualIndex = datasetIndex !== null ? dataIndex : getActualDataIndex(dsIndex, dataIndex);
+        
+        // Vérifier si l'élément existe
+        if (!meta.data[actualIndex]) return;
+        
+        // Basculer la visibilité
+        meta.data[actualIndex].hidden = !meta.data[actualIndex].hidden;
+        
+        // Stocker l'état pour mettre à jour la classe de l'élément de légende
+        isHidden = meta.data[actualIndex].hidden;
+    });
     
     // Ajouter/supprimer la classe pour le style
-    if (meta.data[dataIndex].hidden) {
+    if (isHidden) {
         legendItem.classList.add('legend-item-hidden');
     } else {
         legendItem.classList.remove('legend-item-hidden');
     }
     
+    // Mettre à jour le graphique
     chart.update();
+    
+    // Mettre à jour les attributs de données pour suivre l'état
+    legendItem.dataset.hidden = isHidden ? 'true' : 'false';
 }
 
 /**

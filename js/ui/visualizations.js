@@ -3,10 +3,13 @@
  * Gère la création et la mise à jour des graphiques
  */
 import { formatNumber, generateRandomColors } from '../utils/helpers.js';
+import { createBubbleChart } from './chart-types.js';
+import { ChartConfig } from './chart-config.js';
 
 export class Visualizations {
     constructor() {
         this.charts = {};
+        this.chartConfig = new ChartConfig();
     }
 
     /**
@@ -34,6 +37,40 @@ export class Visualizations {
             }
         });
         this.charts = {};
+    }
+
+    /**
+     * Crée un graphique en bulles pour visualiser les opinions
+     * @param {Array} opinions - Données des opinions
+     */
+    createOpinionBubbleChart(opinions) {
+        if (!opinions || !Array.isArray(opinions) || opinions.length === 0) {
+            console.warn('Aucune opinion à afficher dans le graphique en bulles');
+            return;
+        }
+
+        const ctx = document.getElementById('opinionBubbleChart');
+        if (!ctx) {
+            console.error('Conteneur de graphique non trouvé: opinionBubbleChart');
+            return;
+        }
+
+        // Destruction du graphique existant si nécessaire
+        if (this.charts.opinionBubble) {
+            this.charts.opinionBubble.destroy();
+        }
+
+        // Préparation des données pour le graphique en bulles
+        const bubbleData = opinions.map(opinion => {
+            return {
+                opinion: opinion.text || opinion.opinion || 'Sans texte',
+                totalVotes: opinion.votes || opinion.totalVotes || 1,
+                sentimentScore: opinion.sentiment || opinion.sentimentScore || 0
+            };
+        });
+
+        // Création du graphique en bulles
+        this.charts.opinionBubble = createBubbleChart(ctx, bubbleData, this.chartConfig);
     }
 
     /**
@@ -206,7 +243,7 @@ export class Visualizations {
             this.charts.timeline.destroy();
         }
 
-        // Création du nouveau graphique
+        // Création du graphique en ligne
         this.charts.timeline = new Chart(ctx, {
             type: 'line',
             data: {

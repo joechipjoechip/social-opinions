@@ -2,8 +2,8 @@
  * Module de fabrique de graphiques
  * Centralise la création des différents types de graphiques
  */
-import { formatNumber } from '../utils/index.js';
-import { ChartTypes, ChartLegends } from './index.js';
+import { formatNumber, truncateText } from '../utils/index.js';
+import { ChartTypes, ChartLegends, ChartDOMManager } from './index.js';
 import { DataProcessor } from '../utils/index.js';
 
 /**
@@ -252,5 +252,197 @@ export class ChartFactory {
         }
         
         return chart;
+    }
+    
+    /**
+     * Crée un graphique en bulles pour visualiser les opinions
+     * @param {HTMLElement} ctx - Contexte du canvas
+     * @param {Array} data - Données pour le graphique
+     * @param {Object} config - Configuration du graphique
+     * @returns {Chart} Instance du graphique
+     */
+    static createBubbleChart(ctx, data, config) {
+        if (!ctx || !data || !data.length) {
+            console.warn('Données ou contexte manquants pour le graphique en bulles');
+            return null;
+        }
+        
+        // Création du graphique en utilisant le module ChartTypes
+        return ChartTypes.createBubbleChart(ctx, data, config);
+    }
+    
+    /**
+     * Crée un graphique en camembert multi-séries pour visualiser les opinions
+     * @param {HTMLElement} ctx - Contexte du canvas
+     * @param {HTMLElement} legendContainer - Conteneur de légende
+     * @param {Object} data - Données hiérarchiques pour le graphique
+     * @param {Object} config - Configuration du graphique
+     * @returns {Chart} Instance du graphique
+     */
+    static createMultiSeriesPieChart(ctx, legendContainer, data, config) {
+        if (!ctx || !data) {
+            console.warn('Données ou contexte manquants pour le graphique en camembert multi-séries');
+            return null;
+        }
+        
+        // Création du graphique en utilisant le module ChartTypes
+        const chart = ChartTypes.createMultiSeriesPieChart(ctx, data, config);
+        
+        if (!chart) return null;
+        
+        // Créer une légende HTML personnalisée si un conteneur est fourni
+        if (legendContainer) {
+            // Vider le conteneur de légende
+            if (legendContainer.innerHTML) {
+                legendContainer.innerHTML = '';
+            }
+            
+            // Créer un titre pour la légende
+            const legendTitle = document.createElement('h4');
+            legendTitle.textContent = 'Répartition des opinions par sentiment';
+            legendTitle.className = 'legend-title';
+            legendContainer.appendChild(legendTitle);
+            
+            // Créer les sections de légende pour chaque niveau
+            this._createLegendSection(
+                legendContainer, 
+                'Sentiment global', 
+                data.global, 
+                this._formatTitles(data.global)
+            );
+            
+            this._createLegendSection(
+                legendContainer, 
+                'Groupes principaux', 
+                {
+                    positive: data.mainGroups.groupA.positive + data.mainGroups.groupB.positive,
+                    neutral: data.mainGroups.groupA.neutral + data.mainGroups.groupB.neutral,
+                    negative: data.mainGroups.groupA.negative + data.mainGroups.groupB.negative
+                },
+                {
+                    positive: [data.mainGroups.groupA.title, data.mainGroups.groupB.title],
+                    neutral: [data.mainGroups.groupA.title, data.mainGroups.groupB.title],
+                    negative: [data.mainGroups.groupA.title, data.mainGroups.groupB.title]
+                }
+            );
+            
+            this._createLegendSection(
+                legendContainer, 
+                data.subGroups.title, 
+                data.subGroups,
+                this._formatTitles(data.subGroups)
+            );
+            
+            // Ajouter les interactions pour la légende
+            ChartLegends.addLegendInteractions(
+                legendContainer, 
+                chart, 
+                ChartLegends.highlightPieDataset, 
+                ChartLegends.resetPieHighlight, 
+                ChartLegends.toggleDataVisibility
+            );
+        }
+        
+        return chart;
+    }
+    
+    /**
+     * Crée une section de légende pour un niveau du graphique multi-séries
+     * @param {HTMLElement} container - Conteneur de légende
+     * @param {string} title - Titre de la section
+     * @param {Object} data - Données de sentiment pour la section
+     * @param {Object} titles - Titres des opinions pour chaque sentiment
+     * @private
+     */
+    static _createLegendSection(container, title, data, titles) {
+        if (!container || !data) return;
+        
+        // Créer un conteneur pour la section
+        const section = document.createElement('div');
+        section.className = 'legend-section';
+        
+        // Ajouter un titre à la section
+        const sectionTitle = document.createElement('h5');
+        sectionTitle.textContent = title;
+        sectionTitle.className = 'legend-section-title';
+        section.appendChild(sectionTitle);
+        
+        // Créer les éléments de légende pour chaque sentiment
+        const sentiments = [
+            { key: 'positive', label: 'Positif', color: '#4ADE80' },
+            { key: 'neutral', label: 'Neutre', color: '#94A3B8' },
+            { key: 'negative', label: 'Négatif', color: '#F87171' }
+        ];
+        
+        // Calculer le total des votes pour cette section
+        const totalVotes = (data.positive || 0) + (data.neutral || 0) + (data.negative || 0) || 1;
+        
+        sentiments.forEach(sentiment => {
+            const votes = data[sentiment.key] || 0;
+            const percentage = Math.round(votes / totalVotes * 100);
+            
+            // Créer l'élément de légende
+            const item = ChartDOMManager.createLegendItem(
+                `${sentiment.label} (${percentage}%)`, 
+                sentiment.color, 
+                votes
+            );
+            
+            // Ajouter des attributs de données pour les interactions
+            item.dataset.type = sentiment.key;
+            item.dataset.index = sentiments.indexOf(sentiment);
+            
+            // Ajouter l'élément à la section
+            section.appendChild(item);
+        });
+        
+        // Ajouter la section au conteneur principal
+        container.appendChild(section);
+    }
+    
+    /**
+     * Formate les titres pour l'affichage dans la légende
+     * @param {Object} data - Données de sentiment
+     * @returns {Object} Titres formatés pour chaque sentiment
+     * @private
+     */
+    static _formatTitles(data) {
+        return {
+            positive: data.positiveTitles || [],
+            neutral: data.neutralTitles || [],
+            negative: data.negativeTitles || []
+        };
+    }
+    
+    /**
+     * Obtient une couleur en fonction du score de sentiment
+     * @param {number} sentiment - Score de sentiment entre -1 et 1
+     * @param {Object} config - Configuration des couleurs
+     * @returns {string} Couleur en format hexadécimal
+     */
+    static getSentimentColor(sentiment, config) {
+        if (sentiment > 0.3) {
+            // Positif
+            return config.colors.primary;
+        } else if (sentiment < -0.3) {
+            // Négatif
+            return '#EF4444'; // Rouge
+        } else {
+            // Neutre
+            return config.colors.secondary;
+        }
+    }
+    
+    /**
+     * Obtient une description textuelle du sentiment
+     * @param {number} sentiment - Score de sentiment entre -1 et 1
+     * @returns {string} Description du sentiment
+     */
+    static getSentimentText(sentiment) {
+        if (sentiment > 0.7) return 'Très positif';
+        if (sentiment > 0.3) return 'Positif';
+        if (sentiment > -0.3) return 'Neutre';
+        if (sentiment > -0.7) return 'Négatif';
+        return 'Très négatif';
     }
 }

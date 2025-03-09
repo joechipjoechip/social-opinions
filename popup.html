@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="css/collapsible-sections.css">
     <link rel="stylesheet" href="css/comment-hierarchy.css">
+    <link rel="stylesheet" href="css/bubble-opinions.css">
 </head>
 <body>
     <header class="app-header">
@@ -92,13 +93,37 @@
                 </div>
                 <div id="opinionClusterLegend" class="custom-legend"></div>
             </div>
-
+            
             <div id="commentHierarchyVisualization" class="visualization-container">
                 <div class="visualization-header">
                     <h2 class="visualization-title">Hiérarchie des Commentaires</h2>
                     <p class="visualization-description">Visualisation de la structure hiérarchique des commentaires et de leurs réponses</p>
                 </div>
                 <div id="commentHierarchyContent" class="comment-hierarchy-container"></div>
+            </div>
+
+            <div id="bubbleChartVisualization" class="visualization-container">
+                <div class="visualization-header">
+                    <h2 class="visualization-title">Opinions en Bulles</h2>
+                    <p class="visualization-description">Visualisation des opinions principales sous forme de bulles, où la taille représente la popularité et la position horizontale le sentiment</p>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="opinionBubbleChart"></canvas>
+                </div>
+                <div id="bubbleChartLegend" class="custom-legend">
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #00DC82;"></span>
+                        <span class="legend-label">Opinions positives</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #3B82F6;"></span>
+                        <span class="legend-label">Opinions neutres</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #EF4444;"></span>
+                        <span class="legend-label">Opinions négatives</span>
+                    </div>
+                </div>
             </div>
 
             <div id="summary">

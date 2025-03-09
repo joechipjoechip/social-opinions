@@ -2,6 +2,7 @@
  * Module de visualisation hiérarchique des commentaires
  * Ce module permet d'afficher les commentaires Reddit avec leur structure hiérarchique
  */
+import { BubbleOpinions } from './bubble-opinions.js';
 
 export class CommentHierarchy {
     /**
@@ -11,6 +12,7 @@ export class CommentHierarchy {
     constructor(container) {
         this.container = container;
         this.data = null;
+        this.bubbleOpinions = null;
     }
 
     /**
@@ -68,6 +70,15 @@ export class CommentHierarchy {
             </div>
         `;
         
+        // Créer le conteneur des opinions en graphique multi-séries
+        const bubbleContainer = document.createElement('div');
+        bubbleContainer.className = 'bubble-opinions-container';
+        bubbleContainer.innerHTML = '<h4>Répartition des opinions principales</h4>';
+        
+        // Initialiser le module d'opinions en graphique multi-séries
+        this.bubbleOpinions = new BubbleOpinions(bubbleContainer);
+        this.bubbleOpinions.render(data);
+        
         // Créer le conteneur des commentaires
         const commentsContainer = document.createElement('div');
         commentsContainer.className = 'hierarchical-comments';
@@ -78,6 +89,7 @@ export class CommentHierarchy {
         // Vider le conteneur et ajouter les nouveaux éléments
         this.container.innerHTML = '';
         this.container.appendChild(header);
+        this.container.appendChild(bubbleContainer);
         this.container.appendChild(commentsContainer);
         
         // Initialiser les écouteurs d'événements
@@ -137,9 +149,10 @@ export class CommentHierarchy {
         comments.forEach(comment => {
             const hasReplies = comment.replies && comment.replies.length > 0;
             const scoreClass = this._getScoreClass(comment.score || 0);
+            const sentimentClass = this._getSentimentClass(comment.sentiment || 0);
             
             html += `
-                <div class="comment-item depth-${depth} ${scoreClass}">
+                <div class="comment-item depth-${depth} ${scoreClass} ${sentimentClass}">
                     <div class="comment-header">
                         ${hasReplies ? 
                             `<button class="toggle-replies" aria-expanded="false" aria-label="Afficher/masquer les réponses">►</button>` : 
@@ -147,9 +160,17 @@ export class CommentHierarchy {
                         }
                         <span class="comment-author">${this._escapeHtml(comment.author || 'Anonyme')}</span>
                         <span class="comment-score">${comment.score || 0} points</span>
+                        ${comment.sentiment ? 
+                            `<span class="comment-sentiment ${sentimentClass}">${this._getSentimentText(comment.sentiment)}</span>` : 
+                            ''
+                        }
                     </div>
                     <div class="comment-content">
                         <p>${this._escapeHtml(comment.text || '')}</p>
+                        ${comment.opinions && comment.opinions.length > 0 ? 
+                            `<div class="comment-opinions-container"></div>` : 
+                            ''
+                        }
                     </div>
                     ${hasReplies ? 
                         `<div class="comment-replies">
@@ -176,6 +197,32 @@ export class CommentHierarchy {
         if (score > 10) return 'score-medium';
         if (score > 0) return 'score-low';
         return 'score-neutral';
+    }
+    
+    /**
+     * Détermine la classe CSS basée sur le score de sentiment
+     * @param {number} sentiment - Score de sentiment entre -1 et 1
+     * @returns {string} - Classe CSS
+     * @private
+     */
+    _getSentimentClass(sentiment) {
+        if (sentiment > 0.2) return 'sentiment-positive';
+        if (sentiment < -0.2) return 'sentiment-negative';
+        return 'sentiment-neutral';
+    }
+    
+    /**
+     * Obtient une description textuelle du sentiment
+     * @param {number} sentiment - Score de sentiment entre -1 et 1
+     * @returns {string} Description du sentiment
+     * @private
+     */
+    _getSentimentText(sentiment) {
+        if (sentiment > 0.6) return 'Très positif';
+        if (sentiment > 0.2) return 'Positif';
+        if (sentiment > -0.2) return 'Neutre';
+        if (sentiment > -0.6) return 'Négatif';
+        return 'Très négatif';
     }
     
     /**

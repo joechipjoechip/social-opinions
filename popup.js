@@ -4,7 +4,7 @@ import GeminiService from './js/services/gemini.service.js';
 import { Visualizations } from './js/visualizations.js';
 import { RedditAnalysis } from './js/models/reddit-analysis.model.js';
 import { formatNumber, truncateText, debounce } from './js/utils/helpers.js';
-import { CollapsibleSections, CommentHierarchy } from './js/ui/index.js';
+import { CollapsibleSections, CommentHierarchy, BubbleOpinions } from './js/ui/index.js';
 
 // Initialisation des composants
 const geminiService = new GeminiService();
@@ -212,11 +212,14 @@ function displayCommentHierarchy(data) {
         commentHierarchy = new CommentHierarchy(hierarchyContainer);
     }
     
-    // Rendre la hiérarchie
+    // Préparer les données pour la hiérarchie et les opinions
     const hierarchyData = {
-        hierarchicalComments: hierarchicalComments
+        hierarchicalComments: hierarchicalComments,
+        mainOpinions: data.mainOpinions || [],
+        opinionClusters: data.opinionClusters || []
     };
     
+    // Rendre la hiérarchie avec les opinions intégrées
     commentHierarchy.render(hierarchyData);
 }
 
@@ -552,6 +555,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             // Créer les visualisations
+            visualizations.createOpinionBubbleChart(currentAnalysis.opinionClusters || currentAnalysis.topComments || []);
             visualizations.createOpinionClusterChart(currentAnalysis);
             visualizations.createConsensusChart(currentAnalysis);
             visualizations.createControversyChart(currentAnalysis);
@@ -561,6 +565,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             displayOverview(currentAnalysis);
             displayTopComments(currentAnalysis);
             displayControversialPoints(currentAnalysis);
+            
+            // Afficher la hiérarchie des commentaires après les autres affichages
             displayCommentHierarchy(currentAnalysis);
             
             // Réinitialiser les sections rétractables après le chargement des données
@@ -760,6 +766,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 displayCommentHierarchy(testAnalysis);
                 
                 // Créer les visualisations
+                visualizations.createOpinionBubbleChart(testAnalysis.opinionClusters || testAnalysis.topComments || []);
                 visualizations.createOpinionClusterChart(testAnalysis);
                 visualizations.createConsensusChart(testAnalysis);
                 visualizations.createControversyChart(testAnalysis);

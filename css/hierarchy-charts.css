@@ -1,0 +1,562 @@
+/**
+ * Styles pour les graphiques hiérarchiques
+ * Treemap et Nested
+ */
+
+/* Conteneurs des graphiques hiérarchiques */
+#hierarchyTreemapVisualization,
+#hierarchyNestedVisualization {
+    margin-bottom: 2rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Hauteur des graphiques hiérarchiques */
+#hierarchyTreemapChart,
+#hierarchyNestedChart {
+    height: 400px !important;
+}
+
+/* Styles pour les légendes des graphiques hiérarchiques */
+#hierarchyTreemapLegend,
+#hierarchyNestedLegend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 0 0 8px 8px;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Titre de la légende */
+.legend-title {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+
+/* Explication des couleurs */
+.legend-explanation {
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem;
+    background-color: white;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+}
+
+/* Conteneur des éléments de légende */
+.legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Style des éléments de légende */
+#hierarchyTreemapLegend .legend-item,
+#hierarchyNestedLegend .legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+    width: calc(50% - 0.5rem);
+    box-sizing: border-box;
+}
+
+/* Survol des éléments de légende */
+#hierarchyTreemapLegend .legend-item:hover,
+#hierarchyNestedLegend .legend-item:hover {
+    background-color: #f3f4f6;
+    cursor: pointer;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Élément de légende actif ou en surbrillance */
+#hierarchyTreemapLegend .legend-item.highlight,
+#hierarchyNestedLegend .legend-item.highlight,
+#hierarchyTreemapLegend .legend-item.active,
+#hierarchyNestedLegend .legend-item.active {
+    font-weight: 600;
+    background-color: #f0f9ff;
+    border-color: #93c5fd;
+}
+
+/* Couleur des éléments de légende */
+#hierarchyTreemapLegend .legend-color,
+#hierarchyNestedLegend .legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+/* Texte des éléments de légende */
+#hierarchyTreemapLegend .legend-text,
+#hierarchyNestedLegend .legend-text {
+    margin-right: 8px;
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Valeur des éléments de légende */
+#hierarchyTreemapLegend .legend-value,
+#hierarchyNestedLegend .legend-value {
+    font-weight: 600;
+    color: #4b5563;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+/* Sentiment des éléments de légende */
+.legend-sentiment {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* Couleurs pour les différents sentiments */
+.legend-sentiment[data-sentiment="positif"],
+.legend-sentiment:not([data-sentiment]):contains("positif") {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: rgb(6, 95, 70);
+}
+
+.legend-sentiment[data-sentiment="négatif"],
+.legend-sentiment:not([data-sentiment]):contains("négatif") {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: rgb(153, 27, 27);
+}
+
+.legend-sentiment[data-sentiment="neutre"],
+.legend-sentiment:not([data-sentiment]):contains("neutre") {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: rgb(30, 64, 175);
+}
+
+/* Panneau de détails pour les sous-opinions */
+.treemap-details-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 500px;
+    max-height: 80vh;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    overflow: hidden;
+    display: none;
+}
+
+/* En-tête du panneau de détails */
+.details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.details-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    color: #111827;
+}
+
+.close-button {
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-button:hover {
+    color: #111827;
+}
+
+/* Contenu du panneau de détails */
+.details-content {
+    padding: 1rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.details-content p {
+    margin: 0 0 1rem 0;
+    color: #4b5563;
+}
+
+.details-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.details-content li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.details-content li:last-child {
+    border-bottom: none;
+}
+
+.sub-opinion-text {
+    flex-grow: 1;
+    margin-right: 1rem;
+}
+
+.sub-opinion-value {
+    font-weight: 500;
+    color: #4b5563;
+}
+
+/* Conteneur pour le mini-graphique dans le panneau de détails */
+.details-chart-container {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    background-color: white;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+    height: 200px;
+}
+
+/* Styles spécifiques pour le treemap */
+#hierarchyTreemapVisualization .chart-wrapper {
+    padding: 1rem;
+}
+
+/* Styles spécifiques pour le graphique imbriqué */
+#hierarchyNestedVisualization .chart-wrapper {
+    padding: 1rem;
+}
+
+/* Adaptation pour les écrans plus petits */
+@media (max-width: 768px) {
+    #hierarchyTreemapChart,
+    #hierarchyNestedChart {
+        height: 300px !important;
+    }
+    
+    #hierarchyTreemapLegend .legend-item,
+    #hierarchyNestedLegend .legend-item {
+        width: 100%;
+    }
+    
+    .treemap-details-panel {
+        width: 95%;
+    }
+}
+
+/**
+ * Styles pour les graphiques hiérarchiques (treemap et nested)
+ */
+
+/* Conteneur pour les graphiques hiérarchiques */
+.hierarchy-chart-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    margin-bottom: 20px;
+}
+
+/* Styles pour la légende du treemap */
+.treemap-legend {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Titre de la légende */
+.legend-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+/* Explication des couleurs */
+.legend-explanation {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 12px;
+    text-align: center;
+    padding: 5px;
+    background-color: #f1f5f9;
+    border-radius: 4px;
+}
+
+.legend-explanation span {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* Conteneur des éléments de légende */
+.legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* Élément individuel de légende */
+.legend-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 6px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.legend-item:hover {
+    background-color: #f1f5f9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.legend-item.highlight {
+    background-color: #f1f5f9;
+    border-color: #94a3b8;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Carré de couleur dans la légende */
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+/* Texte de la légende */
+.legend-text {
+    flex-grow: 1;
+    font-size: 14px;
+    color: #334155;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Valeur numérique dans la légende */
+.legend-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+/* Indicateur de sentiment */
+.legend-sentiment {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
+.legend-sentiment[data-sentiment="positif"] {
+    background-color: rgba(34, 197, 94, 0.2);
+    color: #166534;
+}
+
+.legend-sentiment[data-sentiment="négatif"] {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #991b1b;
+}
+
+.legend-sentiment[data-sentiment="neutre"] {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #1e40af;
+}
+
+/* Panneau de détails pour les sous-opinions */
+.treemap-details-panel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 600px;
+    max-height: 80vh;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    display: none;
+    overflow: hidden;
+}
+
+/* En-tête du panneau de détails */
+.details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.details-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+/* Bouton de fermeture */
+.close-button {
+    font-size: 24px;
+    color: #64748b;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close-button:hover {
+    color: #334155;
+}
+
+/* Contenu du panneau de détails */
+.details-content {
+    padding: 16px;
+    overflow-y: auto;
+    max-height: calc(80vh - 60px);
+}
+
+.details-content p {
+    margin: 0 0 12px 0;
+    color: #475569;
+    font-size: 14px;
+}
+
+/* Liste des sous-opinions */
+.sub-opinions-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sub-opinions-list li {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 6px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+/* Carré de couleur pour les sous-opinions */
+.sub-opinion-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+/* Texte des sous-opinions */
+.sub-opinion-text {
+    flex-grow: 1;
+    font-size: 13px;
+    color: #334155;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Valeur des sous-opinions */
+.sub-opinion-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+/* Sentiment des sous-opinions */
+.sub-opinion-sentiment {
+    font-size: 10px;
+    padding: 2px 5px;
+    border-radius: 8px;
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
+.sub-opinion-sentiment[data-sentiment="positif"] {
+    background-color: rgba(34, 197, 94, 0.2);
+    color: #166534;
+}
+
+.sub-opinion-sentiment[data-sentiment="négatif"] {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #991b1b;
+}
+
+.sub-opinion-sentiment[data-sentiment="neutre"] {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #1e40af;
+}
+
+/* Styles responsifs */
+@media (max-width: 768px) {
+    .treemap-details-panel {
+        width: 90%;
+        max-width: none;
+    }
+    
+    .details-header h3 {
+        font-size: 16px;
+    }
+    
+    .sub-opinions-list li {
+        flex-wrap: wrap;
+    }
+    
+    .sub-opinion-text {
+        width: 100%;
+        margin-bottom: 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .legend-items {
+        max-height: 200px;
+    }
+    
+    .treemap-details-panel {
+        width: 95%;
+    }
+}
