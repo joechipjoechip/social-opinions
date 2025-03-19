@@ -28,9 +28,10 @@ function displayOverview(data) {
     const consensusLevel = data.overview.consensusLevel || 
                           (data.controversyScore ? (100 - data.controversyScore) / 100 : 0.5);
     
+    // Afficher le nombre de commentaires extraits directement
     overviewContent.innerHTML = `
-        <div class="stat-value">${formatNumber(data.overview.totalComments)}</div>
-        <p>commentaires analysés</p>
+        <div class="stat-value">${formatNumber(data.extractedCommentsCount || data.overview.totalComments)}</div>
+        <p>commentaires extraits</p>
         <p><strong>Opinion dominante :</strong> ${data.overview.mainOpinion}</p>
         <p><strong>Niveau de consensus :</strong> ${Math.round(consensusLevel * 100)}%</p>
         ${data.metadata?.postTitle ? 

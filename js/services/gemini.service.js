@@ -132,12 +132,16 @@ class GeminiService {
             }
 
             // Création d'une structure de données propre avec des valeurs par défaut
+            // Récupérer le nombre de commentaires extraits s'il est disponible dans les données
+            const extractedCommentsCount = data.extractedCommentsCount || 0;
+            
             return {
                 overview: {
                     totalComments: this._safeNumber(data.overview && data.overview.totalComments),
                     mainOpinion: this._safeString(data.overview && data.overview.mainOpinion),
                     consensusLevel: this._safeNumber(data.overview && data.overview.consensusLevel, 0, 1)
                 },
+                extractedCommentsCount: extractedCommentsCount,
                 opinionClusters: this._safeArray(data.opinionClusters).map(cluster => ({
                     opinion: this._safeString(cluster.opinion),
                     totalVotes: this._safeNumber(cluster.totalVotes),
@@ -429,6 +433,11 @@ class GeminiService {
         // Afficher tous les commentaires envoyés à Gemini de manière détaillée
         console.log("======== COMMENTAIRES ENVOYÉS À GEMINI ========");
         console.log(`Nombre total de commentaires: ${pageContent.comments.length}`);
+        
+        // Stocker le nombre de commentaires extraits (utiliser commentCount s'il est disponible)
+        const extractedCommentsCount = pageContent.commentCount || pageContent.comments.length;
+        console.log(`Nombre total de commentaires extraits: ${extractedCommentsCount}`);
+        
         let totalChars = 0;
         pageContent.comments.forEach((comment, index) => {
             console.log(`Commentaire #${index + 1} [Score: ${comment.score}]:`);
