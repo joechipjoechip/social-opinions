@@ -195,10 +195,11 @@ function extractPostMetadata() {
 }
 
 /**
- * Extrait les commentaires Twitter
- * @returns {Array} Commentaires extraits
+ * Extrait les commentaires Twitter avec défilement automatique pour charger plus de commentaires
+ * @param {number} maxComments - Nombre maximum de commentaires à extraire
+ * @returns {Promise<Array>} Commentaires extraits
  */
-function extractTwitterComments() {
+async function extractTwitterComments(maxComments = 150) {
     const comments = [];
     console.log('Début de l\'extraction des commentaires Twitter...');
     
@@ -275,17 +276,139 @@ function extractTwitterComments() {
             }
         }
         
-        // 3. Trouver tous les tweets (articles) dans la conversation
-        console.log('Recherche de tous les tweets dans la conversation...');
+        // 3. Trouver tous les tweets (articles) dans la conversation avec défilement automatique amélioré
+        console.log('Recherche de tous les tweets dans la conversation avec défilement automatique amélioré...');
         let tweetElements = [];
-        for (const selector of tweetSelectors) {
-            const tweets = conversationContainer.querySelectorAll(selector);
-            if (tweets.length > 0) {
-                tweetElements = Array.from(tweets);
-                console.log(`${tweetElements.length} tweets trouvés avec le sélecteur: ${selector}`);
-                break;
+        let previousTweetCount = 0;
+        let scrollAttempts = 0;
+        let noNewTweetsCount = 0;
+        const MAX_SCROLL_ATTEMPTS = 100; // Augmentation du nombre maximal de tentatives
+        const MAX_NO_NEW_TWEETS = 5; // Nombre de tentatives consécutives sans nouveaux tweets avant d'arrêter
+        
+        // Fonction pour extraire les tweets actuellement visibles
+        const extractVisibleTweets = () => {
+            let allTweets = [];
+            for (const selector of tweetSelectors) {
+                const tweets = conversationContainer.querySelectorAll(selector);
+                if (tweets.length > 0) {
+                    allTweets = Array.from(tweets);
+                    break;
+                }
+            }
+            
+            // Si aucun tweet n'est trouvé avec les sélecteurs spécifiques, essayer un sélecteur plus générique
+            if (allTweets.length === 0) {
+                const genericTweets = conversationContainer.querySelectorAll('article');
+                if (genericTweets.length > 0) {
+                    allTweets = Array.from(genericTweets);
+                }
+            }
+            
+            return allTweets;
+        };
+        
+        // Fonction pour faire défiler la page de manière plus efficace
+        const scrollDown = () => {
+            // Méthode 1: Défilement progressif pour simuler un comportement plus naturel
+            const currentPosition = window.scrollY;
+            const targetPosition = currentPosition + window.innerHeight;
+            window.scrollTo({
+                top: targetPosition,
+                behavior: 'smooth'
+            });
+            
+            // Méthode 2: Défilement jusqu'au dernier tweet visible pour charger plus de contenu
+            if (tweetElements.length > 0) {
+                const lastTweet = tweetElements[tweetElements.length - 1];
+                if (lastTweet && lastTweet.scrollIntoView) {
+                    try {
+                        lastTweet.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    } catch (e) {
+                        console.warn('Erreur lors du défilement vers le dernier tweet:', e);
+                    }
+                }
+            }
+        };
+        
+        // Fonction pour détecter les boutons "Afficher plus de réponses" et cliquer dessus
+        const clickShowMoreButtons = async () => {
+            const showMoreSelectors = [
+                'div[role="button"][tabindex="0"]:not([aria-haspopup="true"])',
+                'div[role="button"]:not([aria-haspopup="true"])',
+                'span[role="button"]'
+            ];
+            
+            let clicked = false;
+            for (const selector of showMoreSelectors) {
+                const buttons = conversationContainer.querySelectorAll(selector);
+                for (const button of buttons) {
+                    const text = button.textContent.toLowerCase();
+                    if (text.includes('plus') || text.includes('more') || text.includes('show') || 
+                        text.includes('afficher') || text.includes('réponses')) {
+                        try {
+                            console.log('Clic sur bouton "Afficher plus":', text);
+                            button.click();
+                            clicked = true;
+                            // Attendre un peu après le clic
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        } catch (e) {
+                            console.warn('Erreur lors du clic sur le bouton:', e);
+                        }
+                    }
+                }
+                if (clicked) break;
+            }
+            return clicked;
+        };
+        
+        // Extraction initiale des tweets
+        tweetElements = extractVisibleTweets();
+        console.log(`Initialement ${tweetElements.length} tweets trouvés`);
+        
+        // Continuer à défiler tant qu'on trouve de nouveaux tweets et qu'on n'a pas atteint la limite
+        while (tweetElements.length < maxComments && scrollAttempts < MAX_SCROLL_ATTEMPTS && noNewTweetsCount < MAX_NO_NEW_TWEETS) {
+            previousTweetCount = tweetElements.length;
+            
+            // 1. Essayer de cliquer sur les boutons "Afficher plus"
+            const clickedShowMore = await clickShowMoreButtons();
+            if (clickedShowMore) {
+                console.log('Bouton "Afficher plus" cliqué, attente du chargement...');
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
+            
+            // 2. Faire défiler vers le bas
+            scrollDown();
+            
+            // 3. Attendre que le contenu se charge (temps d'attente plus long)
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // 4. Extraire les tweets après le défilement
+            tweetElements = extractVisibleTweets();
+            
+            console.log(`Après défilement #${scrollAttempts + 1}: ${tweetElements.length} tweets trouvés (précédemment: ${previousTweetCount})`);
+            
+            // Vérifier si de nouveaux tweets ont été chargés
+            if (tweetElements.length > previousTweetCount) {
+                noNewTweetsCount = 0; // Réinitialiser le compteur car nous avons trouvé de nouveaux tweets
+            } else {
+                noNewTweetsCount++;
+                console.log(`Aucun nouveau tweet trouvé depuis ${noNewTweetsCount} tentatives`);
+            }
+            
+            scrollAttempts++;
+            
+            // Pause plus longue toutes les 10 tentatives pour éviter les limitations
+            if (scrollAttempts % 10 === 0) {
+                console.log('Pause plus longue pour éviter les limitations...');
+                await new Promise(resolve => setTimeout(resolve, 3000));
             }
         }
+        
+        const stopReason = tweetElements.length >= maxComments ? 'limite atteinte' : 
+                          (scrollAttempts >= MAX_SCROLL_ATTEMPTS ? 'nombre maximum de tentatives atteint' : 
+                          'aucun nouveau tweet après plusieurs tentatives');
+        
+        console.log(`Défilement terminé après ${scrollAttempts} tentatives: ${tweetElements.length} tweets trouvés (raison: ${stopReason})`);
         
         if (tweetElements.length === 0) {
             console.warn('Aucun tweet trouvé dans le conteneur de conversation');
@@ -513,10 +636,17 @@ function createErrorResponse(error) {
 
 /**
  * Extrait le contenu de la page (Reddit ou Twitter)
- * @returns {Object} Contenu de la page
+ * @returns {Promise<Object>} Contenu de la page
  */
-function getPageContent() {
+async function getPageContent() {
     try {
+        // Récupérer les options de l'extension, notamment maxComments
+        const options = await new Promise(resolve => {
+            chrome.storage.local.get({ maxComments: 150 }, resolve);
+        });
+        
+        console.log(`Options récupérées: limite de ${options.maxComments} commentaires`);
+        
         // Déterminer si nous sommes sur Twitter ou Reddit
         const isTwitter = isTwitterPage();
         const platform = isTwitter ? 'Twitter' : 'Reddit';
@@ -529,8 +659,8 @@ function getPageContent() {
         let comments = [];
         
         if (isTwitter) {
-            // Extraction des commentaires Twitter
-            comments = extractTwitterComments();
+            // Extraction des commentaires Twitter avec défilement automatique
+            comments = await extractTwitterComments(options.maxComments);
             console.log(`Extraction Twitter: ${comments.length} commentaires trouvés`);
         } else {
             // Méthode 1: Shreddit Comments
@@ -581,11 +711,10 @@ function getPageContent() {
         // Trier les commentaires par score (descendant)
         comments.sort((a, b) => (b.score || 0) - (a.score || 0));
         
-        // Limiter le nombre de commentaires pour éviter les problèmes de performance
-        const MAX_COMMENTS = 150;
-        if (comments.length > MAX_COMMENTS) {
-            console.log(`Limitation du nombre de commentaires à ${MAX_COMMENTS}`);
-            comments = comments.slice(0, MAX_COMMENTS);
+        // Limiter le nombre de commentaires à la valeur définie dans les options
+        if (comments.length > options.maxComments) {
+            console.log(`Limitation du nombre de commentaires à ${options.maxComments}`);
+            comments = comments.slice(0, options.maxComments);
         }
         
         return {
@@ -617,17 +746,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'getContent' || request.action === 'getPageContent') {
         console.log('Réception de la demande d\'extraction de contenu');
         
-        try {
-            // Extraction du contenu et envoi de la réponse
-            const content = getPageContent();
-            sendResponse(content);
-        } catch (error) {
-            console.error('Erreur lors de l\'extraction du contenu:', error);
-            sendResponse({ 
-                error: `Erreur lors de l'extraction: ${error.message || 'Erreur inconnue'}`,
-                errorDetails: error.toString()
-            });
-        }
+        // Utiliser une fonction asynchrone auto-exécutée pour gérer les promesses
+        (async () => {
+            try {
+                // Extraction du contenu et envoi de la réponse
+                const content = await getPageContent();
+                console.log(`Contenu extrait avec succès: ${content.commentCount} commentaires`);
+                sendResponse(content);
+            } catch (error) {
+                console.error('Erreur lors de l\'extraction du contenu:', error);
+                sendResponse({ 
+                    success: false,
+                    error: `Erreur lors de l'extraction: ${error.message || 'Erreur inconnue'}`,
+                    errorDetails: error.toString()
+                });
+            }
+        })();
     } else if (request.action === 'checkRedditPage') {
         // Vérifier si nous sommes sur une page Reddit
         const isRedditPage = window.location.hostname.includes('reddit.com');
