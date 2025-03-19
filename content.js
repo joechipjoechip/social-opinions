@@ -279,32 +279,55 @@ async function extractTwitterComments(maxComments = 150) {
         // 3. Trouver tous les tweets (articles) dans la conversation avec défilement automatique amélioré
         console.log('Recherche de tous les tweets dans la conversation avec défilement automatique amélioré...');
         let tweetElements = [];
+        let processedTweetIds = new Set(); // Ensemble pour suivre les tweets déjà traités
         let previousTweetCount = 0;
         let scrollAttempts = 0;
         let noNewTweetsCount = 0;
         const MAX_SCROLL_ATTEMPTS = 100; // Augmentation du nombre maximal de tentatives
         const MAX_NO_NEW_TWEETS = 5; // Nombre de tentatives consécutives sans nouveaux tweets avant d'arrêter
         
-        // Fonction pour extraire les tweets actuellement visibles
+        // Fonction pour extraire les tweets actuellement visibles et les ajouter au stock
         const extractVisibleTweets = () => {
-            let allTweets = [];
+            let newTweets = [];
+            
+            // Recherche des tweets avec les sélecteurs préférés
             for (const selector of tweetSelectors) {
                 const tweets = conversationContainer.querySelectorAll(selector);
                 if (tweets.length > 0) {
-                    allTweets = Array.from(tweets);
+                    newTweets = Array.from(tweets);
                     break;
                 }
             }
             
             // Si aucun tweet n'est trouvé avec les sélecteurs spécifiques, essayer un sélecteur plus générique
-            if (allTweets.length === 0) {
+            if (newTweets.length === 0) {
                 const genericTweets = conversationContainer.querySelectorAll('article');
                 if (genericTweets.length > 0) {
-                    allTweets = Array.from(genericTweets);
+                    newTweets = Array.from(genericTweets);
                 }
             }
             
-            return allTweets;
+            // Filtrer pour ne garder que les nouveaux tweets non encore traités
+            const uniqueNewTweets = newTweets.filter(tweet => {
+                // Générer un ID unique pour chaque tweet basé sur son contenu et sa position
+                const tweetId = tweet.textContent.trim().substring(0, 100) + 
+                               tweet.offsetTop + tweet.offsetWidth;
+                
+                // Vérifier si ce tweet a déjà été traité
+                if (!processedTweetIds.has(tweetId)) {
+                    processedTweetIds.add(tweetId);
+                    return true;
+                }
+                return false;
+            });
+            
+            // Ajouter les nouveaux tweets uniques au stock existant
+            if (uniqueNewTweets.length > 0) {
+                console.log(`${uniqueNewTweets.length} nouveaux tweets uniques trouvés`);
+                tweetElements = [...tweetElements, ...uniqueNewTweets];
+            }
+            
+            return tweetElements;
         };
         
         // Fonction pour faire défiler la page de manière plus efficace
@@ -362,7 +385,7 @@ async function extractTwitterComments(maxComments = 150) {
         };
         
         // Extraction initiale des tweets
-        tweetElements = extractVisibleTweets();
+        extractVisibleTweets(); // Ajoute les tweets initiaux à tweetElements
         console.log(`Initialement ${tweetElements.length} tweets trouvés`);
         
         // Continuer à défiler tant qu'on trouve de nouveaux tweets et qu'on n'a pas atteint la limite
@@ -382,10 +405,10 @@ async function extractTwitterComments(maxComments = 150) {
             // 3. Attendre que le contenu se charge (temps d'attente plus long)
             await new Promise(resolve => setTimeout(resolve, 1500));
             
-            // 4. Extraire les tweets après le défilement
-            tweetElements = extractVisibleTweets();
+            // 4. Extraire les nouveaux tweets après le défilement et les ajouter au stock
+            extractVisibleTweets(); // Met à jour tweetElements avec les nouveaux tweets
             
-            console.log(`Après défilement #${scrollAttempts + 1}: ${tweetElements.length} tweets trouvés (précédemment: ${previousTweetCount})`);
+            console.log(`Après défilement #${scrollAttempts + 1}: ${tweetElements.length} tweets accumulés (précédemment: ${previousTweetCount})`);
             
             // Vérifier si de nouveaux tweets ont été chargés
             if (tweetElements.length > previousTweetCount) {
