@@ -20,7 +20,8 @@ export function createStandardLegend(container, labels, values, colors, original
     
     const total = values.reduce((a, b) => a + b, 0);
     const legendHTML = labels.map((label, index) => {
-        const percentage = Math.round((values[index] / total) * 100);
+        // Vérifier si le total est valide pour éviter NaN%
+        const percentage = total > 0 ? Math.round((values[index] / total) * 100) : 0;
         const displayLabel = displayLabels[index];
         return `
             <div class="custom-legend-item" data-index="${index}">
@@ -59,11 +60,12 @@ export function createControversyLegend(container, labels, opinion1Values, opini
     if (!container || !labels || !opinion1Values || !opinion2Values) return;
     
     const legendHTML = labels.map((label, index) => {
-        const opinion1Value = opinion1Values[index];
-        const opinion2Value = opinion2Values[index];
+        const opinion1Value = opinion1Values[index] || 0;
+        const opinion2Value = opinion2Values[index] || 0;
         const totalVotes = opinion1Value + opinion2Value;
-        const opinion1Percent = Math.round((opinion1Value / totalVotes) * 100);
-        const opinion2Percent = Math.round((opinion2Value / totalVotes) * 100);
+        // Vérifier si le total est valide pour éviter NaN%
+        const opinion1Percent = totalVotes > 0 ? Math.round((opinion1Value / totalVotes) * 100) : 0;
+        const opinion2Percent = totalVotes > 0 ? Math.round((opinion2Value / totalVotes) * 100) : 0;
         
         return `
             <div class="custom-legend-item" data-index="${index}">

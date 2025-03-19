@@ -95,6 +95,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ isRedditPage });
       return false;
       
+    case 'checkTwitterPage':
+      const isTwitterPage = sender.tab?.url?.includes('twitter.com') || sender.tab?.url?.includes('x.com');
+      sendResponse({ isTwitterPage });
+      return false;
+      
+    case 'checkSupportedPage':
+      const isRedditPageSupported = sender.tab?.url?.includes('reddit.com');
+      const isTwitterPageSupported = sender.tab?.url?.includes('twitter.com') || sender.tab?.url?.includes('x.com');
+      const platform = isTwitterPageSupported ? 'Twitter' : (isRedditPageSupported ? 'Reddit' : 'Unsupported');
+      sendResponse({ isSupported: isRedditPageSupported || isTwitterPageSupported, platform });
+      return false;
+      
     default:
       sendResponse({ success: false, message: 'Action non reconnue' });
       return false;

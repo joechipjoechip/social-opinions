@@ -173,9 +173,9 @@ self.GeminiService = class GeminiService {
             // Création d'une structure de données propre avec des valeurs par défaut
             return {
                 overview: {
-                    totalComments: this._safeNumber(data.overview?.totalComments),
-                    mainOpinion: this._safeString(data.overview?.mainOpinion),
-                    consensusLevel: this._safeNumber(data.overview?.consensusLevel, 0, 1)
+                    totalComments: this._safeNumber(data.overview && data.overview.totalComments),
+                    mainOpinion: this._safeString(data.overview && data.overview.mainOpinion),
+                    consensusLevel: this._safeNumber(data.overview && data.overview.consensusLevel, 0, 1)
                 },
                 opinionClusters: this._safeArray(data.opinionClusters).map(cluster => ({
                     opinion: this._safeString(cluster.opinion),
@@ -194,14 +194,14 @@ self.GeminiService = class GeminiService {
                 frictionPoints: this._safeArray(data.frictionPoints).map(point => ({
                     topic: this._safeString(point.topic),
                     opinion1: {
-                        stance: this._safeString(point.opinion1?.stance),
-                        votes: this._safeNumber(point.opinion1?.votes),
-                        keyArguments: this._safeStringArray(point.opinion1?.keyArguments)
+                        stance: this._safeString(point.opinion1 && point.opinion1.stance),
+                        votes: this._safeNumber(point.opinion1 && point.opinion1.votes),
+                        keyArguments: this._safeStringArray(point.opinion1 && point.opinion1.keyArguments)
                     },
                     opinion2: {
-                        stance: this._safeString(point.opinion2?.stance),
-                        votes: this._safeNumber(point.opinion2?.votes),
-                        keyArguments: this._safeStringArray(point.opinion2?.keyArguments)
+                        stance: this._safeString(point.opinion2 && point.opinion2.stance),
+                        votes: this._safeNumber(point.opinion2 && point.opinion2.votes),
+                        keyArguments: this._safeStringArray(point.opinion2 && point.opinion2.keyArguments)
                     },
                     intensityScore: this._safeNumber(point.intensityScore, 0, 1)
                 })),
@@ -239,6 +239,69 @@ self.GeminiService = class GeminiService {
     }
 
     /**
+     * Convertit une valeur en nombre sûr
+     * @param {*} value - Valeur à convertir
+     * @param {number} defaultValue - Valeur par défaut si la conversion échoue
+     * @returns {number} - Nombre sûr
+     * @private
+     */
+    _safeNumber(value, defaultValue = 0) {
+        if (value === undefined || value === null) return defaultValue;
+        const num = Number(value);
+        return isNaN(num) ? defaultValue : num;
+    }
+    
+    /**
+     * Convertit une valeur en chaîne de caractères sûre
+     * @param {*} value - Valeur à convertir
+     * @param {string} defaultValue - Valeur par défaut si la conversion échoue
+     * @returns {string} - Chaîne de caractères sûre
+     * @private
+     */
+    _safeString(value, defaultValue = '') {
+        if (value === undefined || value === null) return defaultValue;
+        return String(value);
+    }
+    
+    /**
+     * Vérifie si un objet a toutes les propriétés requises
+     * @param {Object} obj - Objet à vérifier
+     * @param {Array} props - Liste des propriétés requises
+     * @returns {boolean} - Vrai si l'objet a toutes les propriétés requises
+     * @private
+     */
+    _hasRequiredProperties(obj, props) {
+        if (!obj || typeof obj !== 'object') return false;
+        return props.every(prop => 
+            obj.hasOwnProperty(prop) && 
+            obj[prop] !== undefined && 
+            obj[prop] !== null
+        );
+    }
+    
+    /**
+     * S'assure qu'un objet a toutes les propriétés requises avec des valeurs par défaut si nécessaire
+     * @param {Object} obj - Objet à compléter
+     * @param {Object} defaults - Valeurs par défaut pour les propriétés manquantes
+     * @returns {Object} - Objet complété
+     * @private
+     */
+    _ensureObjectProperties(obj, defaults) {
+        if (!obj || typeof obj !== 'object') return { ...defaults };
+        
+        const result = { ...obj };
+        
+        // Ajouter les propriétés manquantes avec leurs valeurs par défaut
+        Object.entries(defaults).forEach(([key, value]) => {
+            if (result[key] === undefined || result[key] === null) {
+                result[key] = value;
+            }
+        });
+        
+        return result;
+    }
+
+    /**
      * Normalise et échantillonne les commentaires de manière déterministe
      * @param {Array} comments - Commentaires bruts extraits
      * @returns {Array} - Commentaires normalisés et échantillonnés
@@ -246,26 +309,75 @@ self.GeminiService = class GeminiService {
      */
     _normalizeAndSampleComments(comments) {
         if (!Array.isArray(comments) || comments.length === 0) {
+            console.warn('Aucun commentaire valide à analyser');
             return [];
         }
         
+        console.log(`Normalisation de ${comments.length} commentaires...`);
+        
+        // Définir les propriétés requises et les valeurs par défaut
+        const requiredProps = ['text', 'author', 'score', 'id', 'permalink', 'created'];
+        const defaultValues = {
+            text: '',
+            author: 'Anonyme',
+            score: 0,
+            upvotes: 0,
+            downvotes: 0,
+            awards: 0,
+            isOP: false,
+            id: `comment-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
+            permalink: '',
+            created: new Date().toISOString(),
+            truncatedText: ''
+        };
+        
         // Étape 1: Filtrer les commentaires invalides, vides ou trop courts et nettoyer le texte
-        const validComments = comments.filter(comment => 
-            comment && 
-            typeof comment.text === 'string' && 
-            comment.text.trim().length > 5
-        ).map(comment => ({
-            ...comment,
-            // Nettoyage complet du texte :
-            // 1. trim() pour supprimer les espaces au début et à la fin
-            // 2. replace() avec regex pour remplacer les espaces multiples par un seul espace
-            // 3. replace() pour supprimer les sauts de ligne et tabulations
-            text: comment.text.trim()
-                .replace(/\s+/g, ' ')                  // Remplacer tous les espaces multiples par un seul espace
-                .replace(/[\r\n\t]+/g, ' ')            // Remplacer les sauts de ligne et tabulations par un espace
-                .replace(/\s+([.,;:!?])/g, '$1')       // Supprimer les espaces avant la ponctuation
-                .replace(/\s{2,}/g, ' ')               // S'assurer qu'il n'y a pas d'espaces doubles (redondant mais sécuritaire)
-        }));
+        const validComments = comments
+            .filter(comment => {
+                // Vérifier si le commentaire est un objet valide avec du texte
+                const isValid = comment && 
+                               typeof comment === 'object' && 
+                               typeof comment.text === 'string' && 
+                               comment.text.trim().length > 5;
+                               
+                if (!isValid) {
+                    console.log('Commentaire ignoré car invalide ou trop court:', comment);
+                }
+                
+                return isValid;
+            })
+            .map(comment => {
+                // S'assurer que toutes les propriétés requises sont présentes
+                const normalizedComment = this._ensureObjectProperties(comment, defaultValues);
+                
+                // Nettoyage complet du texte
+                normalizedComment.text = normalizedComment.text.trim()
+                    .replace(/\s+/g, ' ')                  // Remplacer tous les espaces multiples par un seul espace
+                    .replace(/[\r\n\t]+/g, ' ')            // Remplacer les sauts de ligne et tabulations par un espace
+                    .replace(/\s+([.,;:!?])/g, '$1')       // Supprimer les espaces avant la ponctuation
+                    .replace(/\s{2,}/g, ' ');              // S'assurer qu'il n'y a pas d'espaces doubles
+                
+                // Mettre à jour le texte tronqué
+                normalizedComment.truncatedText = this._safeString(normalizedComment.text).substring(0, 100) + 
+                                                (normalizedComment.text.length > 100 ? '...' : '');
+                
+                // S'assurer que les valeurs numériques sont des nombres
+                normalizedComment.score = this._safeNumber(normalizedComment.score);
+                normalizedComment.upvotes = this._safeNumber(normalizedComment.upvotes || normalizedComment.score);
+                normalizedComment.downvotes = this._safeNumber(normalizedComment.downvotes);
+                normalizedComment.awards = this._safeNumber(normalizedComment.awards);
+                
+                // S'assurer que isOP est un booléen
+                normalizedComment.isOP = !!normalizedComment.isOP;
+                
+                return normalizedComment;
+            });
+        
+        console.log(`${validComments.length} commentaires valides après normalisation`);
+        
+        if (validComments.length > 0) {
+            console.log('Exemple de commentaire normalisé:', JSON.stringify(validComments[0], null, 2));
+        }
         
         // Étape 2: Trier les commentaires par score (décroissant)
         const sortedComments = [...validComments].sort((a, b) => {
@@ -282,7 +394,10 @@ self.GeminiService = class GeminiService {
         });
         
         // Étape 3: Limiter au nombre maximum de commentaires
-        return sortedComments.slice(0, this.MAX_COMMENTS);
+        const result = sortedComments.slice(0, this.MAX_COMMENTS);
+        console.log(`Retour de ${result.length} commentaires après échantillonnage`);
+        
+        return result;
     }
 
     /**
@@ -367,14 +482,14 @@ self.GeminiService = class GeminiService {
                         "contents": [{
                             "role": "user",
                             "parts": [{
-                                "text": `Analyse les commentaires Reddit suivants en te concentrant sur l'identification des opinions principales, leur popularité basée sur les votes, et les points de consensus/friction.
+                                "text": `Analyse les commentaires ${pageContent.platform || 'Reddit'} suivants en te concentrant sur l'identification des opinions principales, leur popularité basée sur les votes, et les points de consensus/friction.
                                 
                                 IMPORTANT: Ta réponse doit être un objet JSON valide, sans aucun texte avant ou après. Utilise uniquement des guillemets doubles pour les chaînes.
                                 
                                 Titre: ${pageContent.postTitle}
                                 
                                 Commentaires (triés par score):
-                                ${pageContent.comments.map(c => `[Score: ${c.score || 0}] ${c.text}`).join('\n')}
+                                ${pageContent.comments.map(c => `[Score: ${c.score || 0}] [Auteur: ${c.author || 'Anonyme'}] [OP: ${c.isOP ? 'Oui' : 'Non'}] ${c.text}`).join('\n')}
                                 
                                 Format de sortie attendu:
                                 {

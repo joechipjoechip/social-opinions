@@ -1,4 +1,4 @@
-// Script d'extraction de contenu Reddit optimisé
+// Script d'extraction de contenu Reddit et Twitter optimisé
 
 /**
  * Tronque un texte à la longueur spécifiée
@@ -195,6 +195,307 @@ function extractPostMetadata() {
 }
 
 /**
+ * Extrait les commentaires Twitter
+ * @returns {Array} Commentaires extraits
+ */
+function extractTwitterComments() {
+    const comments = [];
+    console.log('Début de l\'extraction des commentaires Twitter...');
+    
+    try {
+        // 1. Cibler le conteneur principal des conversations Twitter avec plusieurs sélecteurs possibles
+        // Priorité au conteneur spécifique de conversation
+        console.log('Recherche du conteneur de conversation...');
+        let conversationContainer = document.querySelector('div[aria-label="Timeline: Conversation"]');
+        
+        if (conversationContainer) {
+            console.log('Conteneur principal trouvé: div[aria-label="Timeline: Conversation"]');
+        } else {
+            // Essayer d'autres sélecteurs si le premier n'est pas trouvé
+            const alternativeSelectors = [
+                'section[role="region"]',
+                'div[data-testid="primaryColumn"]',
+                'section[aria-labelledby^="accessible-list"]',
+                'div[aria-label^="Timeline"]'
+            ];
+            
+            for (const selector of alternativeSelectors) {
+                const container = document.querySelector(selector);
+                if (container && container.querySelectorAll('article').length > 0) {
+                    conversationContainer = container;
+                    console.log(`Conteneur alternatif trouvé: ${selector}`);
+                    break;
+                }
+            }
+            
+            // Dernier recours: utiliser le body
+            if (!conversationContainer) {
+                console.warn('Aucun conteneur spécifique trouvé, utilisation du body comme fallback');
+                conversationContainer = document.body;
+            }
+        }
+        
+        // 2. Identifier le tweet principal (original) et son auteur
+        console.log('Recherche du tweet principal...');
+        const tweetSelectors = [
+            'article[data-testid="tweet"]',
+            'article',
+            'div[data-testid="tweetDetail"]'
+        ];
+        
+        let mainTweet = null;
+        for (const selector of tweetSelectors) {
+            const tweets = document.querySelectorAll(selector);
+            if (tweets.length > 0) {
+                mainTweet = tweets[0];
+                console.log(`Tweet principal trouvé avec le sélecteur: ${selector}`);
+                break;
+            }
+        }
+        
+        if (!mainTweet) {
+            console.error('Aucun tweet principal trouvé');
+            return comments;
+        }
+        
+        // Extraire l'auteur du tweet principal avec plusieurs sélecteurs possibles
+        let mainTweetAuthor = 'Anonyme';
+        const authorSelectors = [
+            'div[data-testid="User-Name"] a',
+            'a[role="link"] div[dir="ltr"] span',
+            'a[role="link"] span[dir="ltr"]'
+        ];
+        
+        for (const selector of authorSelectors) {
+            const authorElement = mainTweet.querySelector(selector);
+            if (authorElement) {
+                mainTweetAuthor = authorElement.textContent.trim();
+                console.log(`Auteur du tweet principal trouvé: ${mainTweetAuthor}`);
+                break;
+            }
+        }
+        
+        // 3. Trouver tous les tweets (articles) dans la conversation
+        console.log('Recherche de tous les tweets dans la conversation...');
+        let tweetElements = [];
+        for (const selector of tweetSelectors) {
+            const tweets = conversationContainer.querySelectorAll(selector);
+            if (tweets.length > 0) {
+                tweetElements = Array.from(tweets);
+                console.log(`${tweetElements.length} tweets trouvés avec le sélecteur: ${selector}`);
+                break;
+            }
+        }
+        
+        if (tweetElements.length === 0) {
+            console.warn('Aucun tweet trouvé dans le conteneur de conversation');
+            // Essayer de trouver des tweets dans tout le document comme dernier recours
+            tweetElements = Array.from(document.querySelectorAll('article'));
+            console.log(`${tweetElements.length} tweets trouvés dans le document entier`);
+        }
+        
+        // 4. Extraire les informations de chaque tweet
+        console.log(`Traitement de ${tweetElements.length} tweets...`);
+        tweetElements.forEach((tweet, index) => {
+            try {
+                // 4.1 Extraire le texte du tweet avec plusieurs sélecteurs possibles
+                let tweetText = '';
+                const textSelectors = [
+                    'div[data-testid="tweetText"]',
+                    'div[lang]',
+                    'div[dir="auto"]'
+                ];
+                
+                for (const selector of textSelectors) {
+                    const textElement = tweet.querySelector(selector);
+                    if (textElement) {
+                        tweetText = textElement.textContent.trim();
+                        break;
+                    }
+                }
+                
+                if (!tweetText) {
+                    console.log(`Tweet #${index + 1} ignoré: pas de texte`);
+                    return; // Ignorer les tweets sans texte
+                }
+                
+                // 4.2 Extraire l'auteur du tweet
+                let author = 'Anonyme';
+                for (const selector of authorSelectors) {
+                    const authorElement = tweet.querySelector(selector);
+                    if (authorElement) {
+                        author = authorElement.textContent.trim();
+                        break;
+                    }
+                }
+                
+                // 4.3 Vérifier si c'est l'auteur original (OP)
+                const isOP = author === mainTweetAuthor;
+                
+                // 4.4 Extraire le nombre de likes (upvotes) avec plusieurs sélecteurs possibles
+                let likes = 0;
+                const likeSelectors = [
+                    'div[data-testid="like"]',
+                    'div[role="button"][data-testid="like"]',
+                    'div[aria-label*="Like"]',
+                    'div[aria-label*="J\'aime"]',
+                    'div[data-testid="like"] span',
+                    'div[aria-label*="likes"] span',
+                    'div[aria-label*="j\'aime"] span'
+                ];
+                
+                for (const selector of likeSelectors) {
+                    const likeElements = tweet.querySelectorAll(selector);
+                    if (likeElements && likeElements.length > 0) {
+                        // Parcourir tous les éléments trouvés
+                        for (const likeElement of likeElements) {
+                            // Essayer d'extraire le texte directement
+                            const likeText = likeElement.textContent.trim();
+                            if (likeText && /^\d+(\.\d+)?[KMk]?$/.test(likeText)) {
+                                // Convertir en nombre (gérer les formats comme "1.2K")
+                                if (likeText.includes('K') || likeText.includes('k')) {
+                                    likes = parseFloat(likeText.replace(/[Kk]/g, '')) * 1000;
+                                } else if (likeText.includes('M') || likeText.includes('m')) {
+                                    likes = parseFloat(likeText.replace(/[Mm]/g, '')) * 1000000;
+                                } else {
+                                    likes = parseInt(likeText) || 0;
+                                }
+                                console.log(`Likes trouvés pour le tweet #${index + 1}: ${likes} (texte: ${likeText})`);
+                                break;
+                            }
+                            
+                            // Si pas de texte direct, chercher dans les enfants
+                            const likeCountElement = likeElement.querySelector('span[data-testid="app-text-transition-container"]') || 
+                                                    likeElement.querySelector('span');
+                            if (likeCountElement) {
+                                const nestedLikeText = likeCountElement.textContent.trim();
+                                if (nestedLikeText && /^\d+(\.\d+)?[KMk]?$/.test(nestedLikeText)) {
+                                    // Convertir en nombre
+                                    if (nestedLikeText.includes('K') || nestedLikeText.includes('k')) {
+                                        likes = parseFloat(nestedLikeText.replace(/[Kk]/g, '')) * 1000;
+                                    } else if (nestedLikeText.includes('M') || nestedLikeText.includes('m')) {
+                                        likes = parseFloat(nestedLikeText.replace(/[Mm]/g, '')) * 1000000;
+                                    } else {
+                                        likes = parseInt(nestedLikeText) || 0;
+                                    }
+                                    console.log(`Likes trouvés pour le tweet #${index + 1}: ${likes} (texte imbriqué: ${nestedLikeText})`);
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (likes > 0) break; // Sortir si on a trouvé des likes
+                    }
+                }
+                
+                // S'assurer que likes est un nombre valide
+                if (isNaN(likes) || likes < 0) {
+                    console.warn(`Valeur de likes invalide pour le tweet #${index + 1}, réinitialisation à 0`);
+                    likes = 0;
+                }
+                
+                // 4.5 Extraire l'ID du tweet et le permalink
+                let tweetId = `twitter-${index}`;
+                let tweetLink = window.location.href;
+                
+                const linkElement = tweet.querySelector('a[href*="/status/"]');
+                if (linkElement) {
+                    tweetLink = linkElement.href;
+                    const match = tweetLink.match(/\/status\/(\d+)/);
+                    if (match && match[1]) {
+                        tweetId = match[1];
+                    }
+                }
+                
+                // 4.6 Extraire la date de création
+                let created = new Date().toISOString();
+                const timeElement = tweet.querySelector('time');
+                if (timeElement && timeElement.hasAttribute('datetime')) {
+                    created = timeElement.getAttribute('datetime');
+                }
+                
+                // 5. Créer un objet commentaire avec la même structure que Reddit
+                const comment = {
+                    text: tweetText,
+                    author: author,
+                    score: likes,
+                    upvotes: likes, // Pour la compatibilité avec Reddit
+                    downvotes: 0,   // Twitter n'a pas de downvotes
+                    awards: 0,      // Twitter n'a pas d'awards
+                    isOP: isOP,
+                    id: tweetId,
+                    permalink: tweetLink,
+                    created: created,
+                    truncatedText: truncateText(tweetText, 100)
+                };
+                
+                // Vérifier que les valeurs numériques sont valides
+                if (isNaN(comment.score) || comment.score < 0) comment.score = 0;
+                if (isNaN(comment.upvotes) || comment.upvotes < 0) comment.upvotes = 0;
+                if (isNaN(comment.downvotes) || comment.downvotes < 0) comment.downvotes = 0;
+                if (isNaN(comment.awards) || comment.awards < 0) comment.awards = 0;
+                
+                // 6. Valider que toutes les propriétés requises sont présentes
+                const requiredProps = ['text', 'author', 'score', 'upvotes', 'downvotes', 'awards', 'isOP', 'id', 'permalink', 'created'];
+                const missingProps = requiredProps.filter(prop => !comment.hasOwnProperty(prop) || comment[prop] === undefined);
+                
+                if (missingProps.length > 0) {
+                    console.warn(`Tweet #${index + 1} a des propriétés manquantes:`, missingProps);
+                    // Ajouter des valeurs par défaut pour les propriétés manquantes
+                    missingProps.forEach(prop => {
+                        if (prop === 'text' || prop === 'author' || prop === 'permalink') {
+                            comment[prop] = comment[prop] || '';
+                        } else if (prop === 'id') {
+                            comment[prop] = comment[prop] || `twitter-${index}`;
+                        } else if (prop === 'created') {
+                            comment[prop] = comment[prop] || new Date().toISOString();
+                        } else if (prop === 'isOP') {
+                            comment[prop] = comment[prop] || false;
+                        } else {
+                            comment[prop] = comment[prop] || 0;
+                        }
+                    });
+                }
+                
+                // 7. Ajouter le commentaire à la liste
+                comments.push(comment);
+                console.log(`Tweet #${index + 1} extrait avec succès:`, {
+                    author: comment.author,
+                    isOP: comment.isOP,
+                    score: comment.score,
+                    id: comment.id,
+                    text: comment.truncatedText
+                });
+                
+            } catch (tweetError) {
+                console.error(`Erreur lors de l'extraction du tweet #${index + 1}:`, tweetError);
+            }
+        });
+        
+        // 8. Afficher le premier commentaire pour débogage
+        if (comments.length > 0) {
+            console.log('Premier commentaire Twitter (structure complète):', JSON.stringify(comments[0], null, 2));
+        } else {
+            console.warn('Aucun commentaire extrait');
+        }
+        
+    } catch (error) {
+        console.error('Erreur lors de l\'extraction des commentaires Twitter:', error);
+    }
+    
+    console.log(`Extraction Twitter terminée: ${comments.length} commentaires extraits`);
+    return comments;
+}
+
+/**
+ * Vérifie si la page actuelle est Twitter
+ * @returns {boolean} Vrai si c'est une page Twitter
+ */
+function isTwitterPage() {
+    return window.location.hostname.includes('twitter.com') || window.location.hostname.includes('x.com');
+}
+
+/**
  * Crée un objet de réponse d'erreur
  * @param {Error} error - Erreur
  * @returns {Object} Objet de réponse d'erreur
@@ -211,12 +512,15 @@ function createErrorResponse(error) {
 }
 
 /**
- * Extrait le contenu de la page Reddit
+ * Extrait le contenu de la page (Reddit ou Twitter)
  * @returns {Object} Contenu de la page
  */
 function getPageContent() {
     try {
-        console.log('Début de l\'extraction du contenu Reddit');
+        // Déterminer si nous sommes sur Twitter ou Reddit
+        const isTwitter = isTwitterPage();
+        const platform = isTwitter ? 'Twitter' : 'Reddit';
+        console.log(`Début de l'extraction du contenu ${platform}`);
         
         // Extraction des métadonnées
         const metadata = extractPostMetadata();
@@ -224,31 +528,55 @@ function getPageContent() {
         // Extraction des commentaires avec différentes méthodes
         let comments = [];
         
-        // Méthode 1: Shreddit Comments
-        const shredditComments = extractShredditComments();
-        if (shredditComments.length > 0) {
-            console.log(`Extraction réussie avec Shreddit Comments: ${shredditComments.length} commentaires`);
-            comments = shredditComments;
+        if (isTwitter) {
+            // Extraction des commentaires Twitter
+            comments = extractTwitterComments();
+            console.log(`Extraction Twitter: ${comments.length} commentaires trouvés`);
         } else {
-            // Méthode 2: Comment Slots
-            const slotComments = extractCommentSlots();
-            if (slotComments.length > 0) {
-                console.log(`Extraction réussie avec Comment Slots: ${slotComments.length} commentaires`);
-                comments = slotComments;
+            // Méthode 1: Shreddit Comments
+            const shredditComments = extractShredditComments();
+            if (shredditComments.length > 0) {
+                console.log(`Extraction réussie avec Shreddit Comments: ${shredditComments.length} commentaires`);
+                comments = shredditComments;
             } else {
-                // Méthode 3: Old Comments
-                const oldComments = extractOldComments();
-                if (oldComments.length > 0) {
-                    console.log(`Extraction réussie avec Old Comments: ${oldComments.length} commentaires`);
-                    comments = oldComments;
+                // Méthode 2: Comment Slots
+                const slotComments = extractCommentSlots();
+                if (slotComments.length > 0) {
+                    console.log(`Extraction réussie avec Comment Slots: ${slotComments.length} commentaires`);
+                    comments = slotComments;
                 } else {
-                    // Méthode 4: Generic Text (fallback)
-                    const genericComments = extractGenericText();
-                    console.log(`Extraction générique: ${genericComments.length} paragraphes`);
-                    comments = genericComments;
+                    // Méthode 3: Old Comments
+                    const oldComments = extractOldComments();
+                    if (oldComments.length > 0) {
+                        console.log(`Extraction réussie avec Old Comments: ${oldComments.length} commentaires`);
+                        comments = oldComments;
+                    } else {
+                        // Méthode 4: Generic Text (fallback)
+                        const genericComments = extractGenericText();
+                        console.log(`Extraction générique: ${genericComments.length} paragraphes`);
+                        comments = genericComments;
+                    }
                 }
             }
         }
+        
+        // S'assurer que tous les commentaires ont les propriétés requises
+        comments = comments.map(comment => {
+            // Définir des valeurs par défaut pour les propriétés manquantes
+            return {
+                text: comment.text || '',
+                author: comment.author || 'Anonyme',
+                score: comment.score || 0,
+                upvotes: comment.upvotes || comment.score || 0,
+                downvotes: comment.downvotes || 0,
+                awards: comment.awards || 0,
+                isOP: comment.isOP || false,
+                id: comment.id || `comment-${Math.random().toString(36).substring(2, 10)}`,
+                permalink: comment.permalink || '',
+                created: comment.created || new Date().toISOString(),
+                truncatedText: comment.truncatedText || truncateText(comment.text || '', 100)
+            };
+        });
         
         // Trier les commentaires par score (descendant)
         comments.sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -265,6 +593,7 @@ function getPageContent() {
             postTitle: metadata.postTitle,
             postContent: metadata.postContent,
             url: metadata.url,
+            platform: platform,
             comments: comments,
             commentCount: comments.length
         };
@@ -299,6 +628,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 errorDetails: error.toString()
             });
         }
+    } else if (request.action === 'checkRedditPage') {
+        // Vérifier si nous sommes sur une page Reddit
+        const isRedditPage = window.location.hostname.includes('reddit.com');
+        sendResponse({ isRedditPage });
+    } else if (request.action === 'checkTwitterPage') {
+        // Vérifier si nous sommes sur une page Twitter
+        const isTwitterPage = window.location.hostname.includes('twitter.com') || window.location.hostname.includes('x.com');
+        sendResponse({ isTwitterPage });
+    } else if (request.action === 'checkSupportedPage') {
+        // Vérifier si nous sommes sur une page supportée (Reddit ou Twitter)
+        const isRedditPage = window.location.hostname.includes('reddit.com');
+        const isTwitterPage = window.location.hostname.includes('twitter.com') || window.location.hostname.includes('x.com');
+        sendResponse({ isSupported: isRedditPage || isTwitterPage, platform: isTwitterPage ? 'Twitter' : (isRedditPage ? 'Reddit' : 'Unsupported') });
     }
     
     // Retourner true pour indiquer que la réponse sera envoyée de manière asynchrone

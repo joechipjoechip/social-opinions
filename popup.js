@@ -403,14 +403,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 throw new Error(content.error);
             }
             
-            // Vérifier si nous sommes sur Reddit
-            if (!content.url || !content.url.includes('reddit.com')) {
-                throw new Error('Cette extension fonctionne uniquement sur Reddit');
+            // Vérifier si nous sommes sur Reddit ou Twitter
+            if (!content.url || !(content.url.includes('reddit.com') || content.url.includes('twitter.com') || content.url.includes('x.com'))) {
+                throw new Error('Cette extension fonctionne uniquement sur Reddit et Twitter/X');
             }
             
             // Vérifier s'il y a des commentaires
             if (!content.comments || content.comments.length === 0) {
-                throw new Error('Aucun commentaire trouvé sur cette page. Assurez-vous d\'être sur une page de discussion Reddit avec des commentaires visibles.');
+                const platformName = content.url.includes('reddit.com') ? 'Reddit' : 'Twitter/X';
+                throw new Error(`Aucun commentaire trouvé sur cette page. Assurez-vous d'être sur une page de discussion ${platformName} avec des commentaires visibles.`);
             }
             
             // Générer l'analyse

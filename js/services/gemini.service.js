@@ -134,9 +134,9 @@ class GeminiService {
             // Création d'une structure de données propre avec des valeurs par défaut
             return {
                 overview: {
-                    totalComments: this._safeNumber(data.overview?.totalComments),
-                    mainOpinion: this._safeString(data.overview?.mainOpinion),
-                    consensusLevel: this._safeNumber(data.overview?.consensusLevel, 0, 1)
+                    totalComments: this._safeNumber(data.overview && data.overview.totalComments),
+                    mainOpinion: this._safeString(data.overview && data.overview.mainOpinion),
+                    consensusLevel: this._safeNumber(data.overview && data.overview.consensusLevel, 0, 1)
                 },
                 opinionClusters: this._safeArray(data.opinionClusters).map(cluster => ({
                     opinion: this._safeString(cluster.opinion),
@@ -155,14 +155,14 @@ class GeminiService {
                 frictionPoints: this._safeArray(data.frictionPoints).map(point => ({
                     topic: this._safeString(point.topic),
                     opinion1: {
-                        stance: this._safeString(point.opinion1?.stance),
-                        votes: this._safeNumber(point.opinion1?.votes),
-                        keyArguments: this._safeStringArray(point.opinion1?.keyArguments)
+                        stance: this._safeString(point.opinion1 && point.opinion1.stance),
+                        votes: this._safeNumber(point.opinion1 && point.opinion1.votes),
+                        keyArguments: this._safeStringArray(point.opinion1 && point.opinion1.keyArguments)
                     },
                     opinion2: {
-                        stance: this._safeString(point.opinion2?.stance),
-                        votes: this._safeNumber(point.opinion2?.votes),
-                        keyArguments: this._safeStringArray(point.opinion2?.keyArguments)
+                        stance: this._safeString(point.opinion2 && point.opinion2.stance),
+                        votes: this._safeNumber(point.opinion2 && point.opinion2.votes),
+                        keyArguments: this._safeStringArray(point.opinion2 && point.opinion2.keyArguments)
                     },
                     intensityScore: this._safeNumber(point.intensityScore, 0, 1)
                 })),
@@ -266,9 +266,9 @@ class GeminiService {
                     
                     const activeTab = tabs[0];
                     
-                    // Vérifier si nous sommes sur Reddit
-                    if (!activeTab.url || !activeTab.url.includes('reddit.com')) {
-                        reject(new Error('Cette extension fonctionne uniquement sur Reddit'));
+                    // Vérifier si nous sommes sur Reddit ou Twitter/X
+                    if (!activeTab.url || !(activeTab.url.includes('reddit.com') || activeTab.url.includes('twitter.com') || activeTab.url.includes('x.com'))) {
+                        reject(new Error('Cette extension fonctionne uniquement sur Reddit et Twitter/X'));
                         return;
                     }
                     
