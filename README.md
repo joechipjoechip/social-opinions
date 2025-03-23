@@ -12,6 +12,9 @@ Les autres modèles n'ont produit que du code non-fonctionnel et inutilement amb
 J'ai décidé de ne pas prendre la version "thinking" de Claude 3.7 après quelques essais, 
 car celui-ci avait tendance à se perdre et à engranger tellement de contexte que cela semblait le rendre inopérant.
 
+## API keys en clair
+l'ia a pu écrire mes clés api en clair dans le code, perdez pas votre temps à tenter, j'ai tout révoqué ;)
+
 
 ## Structure du projet
 
