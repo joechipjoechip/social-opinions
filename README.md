@@ -16,5 +16,7 @@ J'ai autorisé l'IA à écrire mes API keys en clair dans le code pour faciliter
 perdez pas votre temps à tenter, j'ai tout révoqué ;)
 
 Pour faire fonctionner cette extension donc, il vous faudra une clé API Gémini avec le scope "Generative language API".
+
+
 ![alt text](image.png)
 
