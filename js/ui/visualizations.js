@@ -1,5 +1,5 @@
 /**
- * Module de visualisations pour Reddit Opinions
+ * Module de visualisations pour Social Opinions
  * Gère la création et la mise à jour des graphiques
  */
 import { formatNumber, generateRandomColors } from '../utils/helpers.js';

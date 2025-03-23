@@ -1,5 +1,5 @@
 /**
- * Module de légendes pour les graphiques de Reddit Opinions
+ * Module de légendes pour les graphiques de Social Opinions
  * Contient des fonctions pour créer et gérer des légendes personnalisées
  */
 import { formatNumber } from '../utils/index.js';

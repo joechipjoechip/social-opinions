@@ -1,5 +1,5 @@
 /**
- * Utilitaires généraux pour l'extension Reddit Opinions
+ * Utilitaires généraux pour l'extension Social Opinions
  */
 
 /**

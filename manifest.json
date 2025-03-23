@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Social Media Opinions",
+  "name": "Social Opinions",
   "version": "1.0",
   "description": "Analyse les opinions et les tendances dans les commentaires Reddit et Twitter à l'aide de l'IA",
   "content_security_policy": {

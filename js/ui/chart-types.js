@@ -1,5 +1,5 @@
 /**
- * Module de types de graphiques pour Reddit Opinions
+ * Module de types de graphiques pour Social Opinions
  * Contient des fonctions spécialisées pour créer différents types de graphiques
  */
 import { formatNumber, truncateText } from '../utils/index.js';

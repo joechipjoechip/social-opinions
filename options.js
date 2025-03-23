@@ -1,5 +1,5 @@
 /**
- * Script de gestion des options de l'extension Reddit Opinions
+ * Script de gestion des options de l'extension Social Opinions
  */
 
 // Éléments du DOM

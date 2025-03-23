@@ -1,5 +1,5 @@
 /**
- * Script d'arrière-plan pour l'extension Reddit Opinions
+ * Script d'arrière-plan pour l'extension Social Opinions
  * Gère les événements d'installation, les mises à jour et les messages entre composants
  */
 
@@ -170,4 +170,4 @@ setInterval(cleanupExpiredCache, 12 * 60 * 60 * 1000);
 // Nettoyer le cache au démarrage
 cleanupExpiredCache();
 
-console.log('Service Worker de l\'extension Reddit Opinions initialisé');
+console.log('Service Worker de l\'extension Social Opinions initialisé');

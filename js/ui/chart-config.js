@@ -1,5 +1,5 @@
 /**
- * Configuration des graphiques pour l'extension Reddit Opinions
+ * Configuration des graphiques pour l'extension Social Opinions
  */
 export class ChartConfig {
     constructor() {

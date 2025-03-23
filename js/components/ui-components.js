@@ -1,5 +1,5 @@
 /**
- * Composants d'interface utilisateur pour Reddit Opinions
+ * Composants d'interface utilisateur pour Social Opinions
  */
 import { truncateText } from '../utils/helpers.js';
 
