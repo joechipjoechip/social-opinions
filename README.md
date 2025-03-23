@@ -17,6 +17,8 @@ perdez pas votre temps à tenter, j'ai tout révoqué ;)
 
 Pour faire fonctionner cette extension donc, il vous faudra une clé API Gémini avec le scope "Generative language API".
 
+https://console.cloud.google.com/apis/credentials/key
+
 
 ![alt text](image.png)
 
