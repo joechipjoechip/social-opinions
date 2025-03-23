@@ -11,6 +11,10 @@ Les autres modèles n'ont produit que du code non-fonctionnel et inutilement amb
 J'ai décidé de ne pas prendre la version "thinking" de Claude 3.7 après quelques essais, 
 car celui-ci avait tendance à se perdre et à engranger tellement de contexte que cela semblait le rendre inopérant.
 
-## API keys en clair
-l'ia a pu écrire mes clés api en clair dans le code, perdez pas votre temps à tenter, j'ai tout révoqué ;)
+## API keys
+J'ai autorisé l'IA à écrire mes API keys en clair dans le code pour faciliter les itérations du dev, 
+perdez pas votre temps à tenter, j'ai tout révoqué ;)
+
+Pour faire fonctionner cette extension donc, il vous faudra une clé API Gémini avec le scope "Generative language API".
+![alt text](image.png)
 
