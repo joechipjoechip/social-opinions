@@ -6,7 +6,7 @@ class GeminiService {
         this.cache = new Map();
         this.MAX_RETRIES = 3;
         // Clé API par défaut (pour le développement)
-        this.API_KEY = 'AIzaSyDXsazw-xOdNCmP6CwXo_Rhi4yGohcrmvs';
+        this.API_KEY = 'REMOVED_API_KEY';
         
         // Indique si le cache a été initialisé
         this.cacheInitialized = false;
@@ -43,54 +43,25 @@ class GeminiService {
     }
 
     /**
-     * Récupère le token d'accès OAuth2
-     * @returns {Promise<string>} - Token d'accès
-     */
-    async getAccessToken() {
-        return new Promise((resolve, reject) => {
-            chrome.identity.getAuthToken({ interactive: true }, function(token) {
-                if (chrome.runtime.lastError) {
-                    const error = chrome.runtime.lastError;
-                    console.error('Erreur OAuth2:', error.message);
-                    
-                    // Si l'erreur est liée à l'ID client, suggérer de basculer vers la clé API
-                    if (error.message && error.message.includes('bad client id')) {
-                        console.warn('ID client OAuth2 invalide. Vérifiez la configuration dans le manifest.json.');
-                    } else if (error.message && error.message.includes('Authorization page could not be loaded')) {
-                        console.warn('Page d\'autorisation non chargée. Vérifiez votre connexion internet.');
-                    } else if (error.message && error.message.includes('The user did not approve access')) {
-                        console.warn('L\'utilisateur a refusé l\'accès.');
-                    }
-                    
-                    reject(error);
-                    return;
-                }
-                
-                if (!token) {
-                    reject(new Error('Token OAuth2 non obtenu'));
-                    return;
-                }
-                
-                console.log('Token OAuth2 obtenu avec succès');
-                resolve(token);
-            });
-        });
-    }
-
-    /**
      * Récupère la clé API depuis le stockage local ou utilise la clé par défaut
      * @returns {Promise<string>} - Clé API
      */
     async getApiKey() {
-        // En mode développement, utiliser la clé du fichier .env
-        if (this.API_KEY) {
-            return this.API_KEY;
-        }
-        
-        // Sinon, récupérer depuis le stockage local
+        // Récupérer depuis le stockage local
         return new Promise((resolve) => {
             chrome.storage.local.get('apiKey', (data) => {
-                resolve(data.apiKey || '');
+                // Utiliser la clé API configurée par l'utilisateur en priorité
+                if (data.apiKey) {
+                    console.log('Utilisation de la clé API configurée dans les options');
+                    resolve(data.apiKey);
+                } else if (this.API_KEY) {
+                    // Utiliser la clé par défaut uniquement si aucune clé n'est configurée
+                    console.log('Utilisation de la clé API par défaut (développement)');
+                    resolve(this.API_KEY);
+                } else {
+                    // Aucune clé disponible
+                    resolve('');
+                }
             });
         });
     }
@@ -419,16 +390,19 @@ class GeminiService {
             return { ...cachedData, _fromCache: true };
         }
 
-        // ... (code existant)
-
         // Préparer les en-têtes d'authentification
         let authHeader = {};
         let apiUrl = this.API_URL;
         
-        // ... (code existant)
-
-        apiUrl = `${this.API_URL}?key=${authSettings.apiKey}`;
-        console.log('Utilisation de l\'authentification par clé API');
+        // Récupérer la clé API depuis le stockage local
+        const apiKey = await this.getApiKey();
+        if (apiKey) {
+            apiUrl = `${this.API_URL}?key=${encodeURIComponent(apiKey)}`;
+            console.log('Utilisation de la clé API configurée par l\'utilisateur');
+        } else {
+            console.error('Erreur d\'authentification: Aucune clé API configurée');
+            throw new Error('Aucune clé API configurée. Veuillez configurer une clé API dans les options.');
+        }
 
         // Afficher tous les commentaires envoyés à Gemini de manière détaillée
         console.log("======== COMMENTAIRES ENVOYÉS À GEMINI ========");

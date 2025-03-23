@@ -45,24 +45,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
       return true; // Indique que la réponse sera envoyée de manière asynchrone
       
-    case 'testOAuth':
-      geminiService.getAccessToken()
-        .then(token => {
-          sendResponse({ 
-            success: true, 
-            message: 'Authentification OAuth2 réussie',
-            token: token.substring(0, 10) + '...' // Ne pas envoyer le token complet pour des raisons de sécurité
-          });
-        })
-        .catch(error => {
-          console.error('Erreur lors du test OAuth:', error);
-          sendResponse({ 
-            success: false, 
-            message: `Erreur d'authentification: ${error.message}` 
-          });
-        });
-      return true; // Indique que la réponse sera envoyée de manière asynchrone
-      
     case 'generateSummary':
       console.log('Demande de génération de résumé reçue');
       if (!request.pageContent) {

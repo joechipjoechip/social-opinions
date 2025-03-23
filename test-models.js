@@ -1,5 +1,5 @@
 // Script pour tester les modèles disponibles avec l'API Gemini
-const API_KEY = 'AIzaSyDXsazw-xOdNCmP6CwXo_Rhi4yGohcrmvs';
+const API_KEY = 'REMOVED_API_KEY';
 const LIST_MODELS_URL = 'https://generativelanguage.googleapis.com/v1/models?key=' + API_KEY;
 
 async function listAvailableModels() {
